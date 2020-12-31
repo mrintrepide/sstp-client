@@ -79,12 +79,17 @@ void sstp_usage_die(const char *prog, int code,
     printf("Available sstp options:\n");
     printf("  --ca-cert <cert>         Provide the CA certificate in PEM format\n");
     printf("  --ca-path <path>         Provide the CA certificate path\n");
+    printf("  --cert-warn              Warn on certificate errors\n");
     printf("  --ipparam <param>        The unique connection id used w/pppd\n");
     printf("  --help                   Display this menu\n");
     printf("  --debug                  Enable debug mode\n");
     printf("  --nolaunchpppd           Don't start pppd, for use with pty option\n");
-    printf("  --user                   Username\n");
     printf("  --password               Password\n");
+    printf("  --priv-user              The user to run as\n");
+    printf("  --priv-group             The group to run as\n");
+    printf("  --priv-dir               The privilege separation directory\n");
+    printf("  --proxy                  Proxy URL\n");
+    printf("  --user                   Username\n");
     printf("  --version                Display the version information\n\n");
 
     /* Additional log usage */
@@ -120,6 +125,18 @@ static void sstp_print_version(const char *prog)
 
 
 /*!
+ * @brief Scribble on an input argument to avoid having it appear in /proc/self/cmdline
+ */
+static void sstp_scramble(char *arg)
+{
+    while (*arg)
+    {
+        *arg++ = 'x';
+    }
+}
+
+
+/*!
  * @brief Handle the individual options here
  */
 static void sstp_parse_option(sstp_option_st *ctx, int argc, char **argv, int index)
@@ -127,40 +144,57 @@ static void sstp_parse_option(sstp_option_st *ctx, int argc, char **argv, int in
     switch (index)
     {
     case 0:
-        strncpy(ctx->ca_cert, optarg, sizeof(ctx->ca_cert)-1);
-        ctx->have.ca_cert = 1;
+        ctx->ca_cert = strdup(optarg);
         break;
 
     case 1:
-        strncpy(ctx->ca_path, optarg, sizeof(ctx->ca_path)-1);
-        ctx->have.ca_path = 1;
+        ctx->ca_path = strdup(optarg);
         break;
 
     case 2:
-        ctx->enable |= SSTP_OPT_DEBUG;
+        ctx->enable |= SSTP_OPT_CERTWARN;
         break;
 
     case 3:
-        sstp_usage_die(argv[0], 0, "Showing help text");
+        ctx->enable |= SSTP_OPT_DEBUG;
         break;
 
     case 4:
-        strncpy(ctx->ipparam, optarg, sizeof(ctx->ipparam));
-        ctx->have.ipparam = 1;
+        sstp_usage_die(argv[0], 0, "Showing help text");
         break;
 
     case 5:
+        ctx->ipparam = strdup(optarg);
+        break;
+
+    case 6:
         ctx->enable |= SSTP_OPT_NOLAUNCH;
         break;
 
-    case 6: 
-        strncpy(ctx->password, optarg, sizeof(ctx->password));
-        ctx->have.password = 1;
+    case 7: 
+        ctx->password = strdup(optarg);
+        sstp_scramble(optarg);
         break;
 
-    case 7:
-        strncpy(ctx->user, optarg, sizeof(ctx->user));
-        ctx->have.user = 1;
+    case 8:
+        ctx->priv_user = strdup(optarg);
+        break;
+
+    case 9:
+        ctx->priv_group = strdup(optarg);
+        break;
+
+    case 10:
+        ctx->priv_dir = strdup(optarg);
+        break;
+
+    case 11:
+        ctx->proxy = strdup(optarg);    // May contain user/pass.
+        sstp_scramble(optarg);
+        break;
+
+    case 12:
+        ctx->user = strdup(optarg);
         break;
 
     default:
@@ -172,18 +206,60 @@ static void sstp_parse_option(sstp_option_st *ctx, int argc, char **argv, int in
 }
 
 
+void sstp_option_free(sstp_option_st *ctx)
+{
+    if (ctx->ca_cert)
+        free(ctx->ca_cert);
+
+    if (ctx->ca_path)
+        free(ctx->ca_path);
+
+    if (ctx->server)
+        free(ctx->server);
+
+    if (ctx->ipparam)
+        free(ctx->ipparam);
+
+    if (ctx->password)
+        free(ctx->password);
+
+    if (ctx->priv_user)
+        free(ctx->priv_user);
+
+    if (ctx->priv_group)
+        free(ctx->priv_group);
+
+    if (ctx->priv_dir)
+        free(ctx->priv_dir);
+
+    if (ctx->proxy)
+        free(ctx->proxy);
+
+    if (ctx->user)
+        free(ctx->user);
+
+    /* Reset the entire structure */
+    memset(ctx, 0, sizeof(sstp_option_st));
+}
+
+
 int sstp_parse_argv(sstp_option_st *ctx, int argc, char **argv)
 {
     int option_index = 0;
     static struct option option_long[] = 
     {
-        { "ca-cert",        required_argument, NULL,  0  },
+        { "ca-cert",        required_argument, NULL,  0  }, /* 0 */
         { "ca-path",        required_argument, NULL,  0  },
+        { "cert-warn",      no_argument,       NULL,  0  },
         { "debug",          no_argument,       NULL,  0  },
         { "help",           no_argument,       NULL,  0  },
-        { "ipparam",        required_argument, NULL,  0  },
+        { "ipparam",        required_argument, NULL,  0  }, /* 5 */
         { "nolaunchpppd",   no_argument,       NULL,  0  },
         { "password",       required_argument, NULL,  0  },
+        { "priv-user",      required_argument, NULL,  0  },
+        { "priv-group",     required_argument, NULL,  0  },
+        { "priv-dir",       required_argument, NULL,  0  }, /* 10 */
+        { "proxy",          required_argument, NULL,  0  },
         { "user",           required_argument, NULL,  0  },
         { "version",        no_argument,       NULL, 'v' },
         { 0, 0, 0, 0 }
@@ -224,15 +300,44 @@ int sstp_parse_argv(sstp_option_st *ctx, int argc, char **argv)
         }
     }
 
+    /* If proxy wasn't specified, use the http_proxy environment variable */
+    if (!ctx->proxy && getenv("http_proxy"))
+    {
+        ctx->proxy = strdup(getenv("http_proxy"));
+    }
+
+    /* If not specified, use the default value */
+    if (!ctx->priv_user)
+    {
+        ctx->priv_user = strdup(SSTP_USER);
+    }
+
+    /* If not specified, use the default value */
+    if (!ctx->priv_group)
+    {
+        ctx->priv_group = strdup(SSTP_GROUP);
+    }
+
+    /* If not specified, use the default value */
+    if (!ctx->priv_dir)
+    {
+        ctx->priv_dir = strdup(SSTP_RUNTIME_DIR);
+    }
+
     /* At least one argument is required */
     if (argc <= optind)
     {
         sstp_usage_die(argv[0], -1, "At least one argument is required");
     }
 
+    /* Don't use the plugin as user-name and password is specified */
+    if (ctx->user && ctx->password)
+    {
+        ctx->enable |= SSTP_OPT_NOPLUGIN;
+    }
+
     /* Copy the server argument */
-    strncpy(ctx->server, argv[optind++], sizeof(ctx->server)-1);
-    ctx->have.server = 1;
+    ctx->server = strdup(argv[optind++]);
 
     /* PPPD options to follow */
     ctx->pppdargc = argc - optind;

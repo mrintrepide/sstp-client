@@ -1,0 +1,12 @@
+d21f9da826c372f0142a53ac70b0b2f8  usr/include/sstp-client/sstp-api.h
+4082b869631c93620ed0fe5ea808383b  usr/lib/libsstp_api.a
+fb3210e3657dc3c531e0389843f85d2a  usr/lib/libsstp_api.la
+997e6d1ae5520fc06705eddcb4a504d5  usr/lib/libsstp_api.so.0.0.0
+e0f1d6111382e66b201017b49a5ad83e  usr/lib/pkgconfig/sstp-client-1.0.pc
+527ef824b08ef3e49fbb6426f4bf9d2d  usr/lib/pppd/2.4.5/sstp-pppd-plugin.a
+d2fd9e372da8d3e7086c97d2fa9e7d65  usr/lib/pppd/2.4.5/sstp-pppd-plugin.la
+1ba24ae050433ad6b301a3449cbeeea4  usr/lib/pppd/2.4.5/sstp-pppd-plugin.so
+22131dd12905ad5e7234100c7acac610  usr/sbin/sstpc
+1f85cb073d49460f960d79a5da764b0f  usr/share/doc/sstp-client/changelog.gz
+5c08411ac6911a2a3d14f6b3ef5d49e1  usr/share/doc/sstp-client/copyright
+70f90c6aab9ac20d8098b4593bac9743  usr/share/man/man8/sstpc.8.gz

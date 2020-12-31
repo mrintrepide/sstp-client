@@ -1,23 +1,22 @@
-PPPD Handling:
-* Implement signal handling in sstp-signal.c
+SSTP Client (1.0.2):
+* Verify that Network Manager plugin still works.
 
-SSTP Client:
+Future Release
+* HTTP Proxy Digest Authentication support
+* Automate the unit-tests
+ - Autotools to help do this 'make check'
 * Improve Certificate Verification
-  - Command line option to ignore, or specify
-* Support CRL
-  - Look at stunnel project
-* HTTP Proxy support
+ - Restrict certain cipher suites.
+ - Support for CRL and certificate revocation
+* SSTP Server Support
+* Network Manager Plugin support
+ - Need to prevent nameresolve before invoking sstpc
+ - Add proxy configuration support
+ - Additional options to limit the crypto
+* Build doxygen target
 
-Integration
-- NetworkManager, almost complete.
-  - Need to put a dialog box for CA-Cert
-  - Look at openvpn integration
-
-Statistics
-- API to obtain statistics of a running instance?
-
-Doxygen comments throughout the project
 
 Coding style document
   - Tab Width: 4
   - Spaces no tabs!
+

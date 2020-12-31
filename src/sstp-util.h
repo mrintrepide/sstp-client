@@ -31,10 +31,16 @@
 typedef struct
 {
     /* The service string, or NULL if none */
-    char *protocol;
+    char *schema;
     
     /*< The host, either a domain or a ip address */
-    char *site;
+    char *host;
+
+    /*< The username if specified */
+    char *user;
+
+    /*< The password if specified */
+    char *password;
 
     /*< The port component */
     char *port;
@@ -53,10 +59,12 @@ typedef struct
  */
 status_t sstp_set_nonbl(int sock, int state);
 
+
 /*!
  * @brief Generate a UUID string
  */
 char *sstp_get_guid(char *buf, int len);
+
 
 /*!
  * @brief Set socket send buffer size
@@ -65,9 +73,9 @@ status_t sstp_set_sndbuf(int sock, int size);
 
 
 /*!
- * @brief Split the URL up into components
+ * @brief Split the URL up into components (non-rfc complient) 
  */
-status_t sstp_url_split(sstp_url_st **url, const char *path);
+status_t sstp_url_parse(sstp_url_st **url, const char *path);
 
 
 /*!
@@ -86,5 +94,24 @@ const char *sstp_norm_time(unsigned long t, char *buf, int len);
  * @brief Free the url structure
  */ 
 void sstp_url_free(sstp_url_st *url);
+
+
+/*!
+ * @brief Convert sockaddr structure to a string
+ */
+const char *sstp_ipaddr(struct sockaddr *addr, char *buf, int len);
+
+
+/*!
+ * @brief Create a new directory @a path and change it's permissions to user and group
+ */
+int sstp_create_dir(const char *path, const char *user, const char *group, mode_t mode);
+
+
+/*!
+ * @brief Enter a sandbox given the new root @a newroot directory, user and group id.
+ */
+int sstp_sandbox(const char *newroot, const char *user, const char *group);
+
 
 #endif

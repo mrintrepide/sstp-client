@@ -21,12 +21,17 @@
  *  with this program; if not, write to the Free Software Foundation, Inc.,
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <arpa/inet.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <pwd.h>
+#include <grp.h>
 #include <unistd.h>
 
 #include "sstp-private.h"
@@ -90,7 +95,7 @@ status_t sstp_set_sndbuf(int sock, int size)
 }
 
 
-status_t sstp_url_split(sstp_url_st **url, const char *path)
+status_t sstp_url_parse(sstp_url_st **url, const char *path)
 {
     char *ptr = NULL;
     char *ptr1 = NULL;
@@ -110,14 +115,36 @@ status_t sstp_url_split(sstp_url_st **url, const char *path)
     ptr1 = strstr(ptr, "://");
     if (ptr1 != NULL)
     {
-        ctx->protocol = ptr;
+        ctx->schema= ptr;
         *ptr1 = '\0';
         ptr1  += 3;
         ptr    = ptr1;
     }
 
+    /* Username & Password? */
+    ptr1 = strchr(ptr, '@');
+    if (ptr1 != NULL)
+    {
+        ctx->user = ptr;
+        *ptr1++ = '\0';
+        ptr = ptr1;
+    }
+
     /* Set the site pointer */
-    ctx->site = ptr;
+    ctx->host = ptr;
+    
+    /* Extract the password */
+    if (ctx->user)
+    {
+        ptr1 = strchr(ctx->user, ':');
+        if (!ptr1)
+        {
+            goto errout;
+        }
+
+        *ptr1++ = '\0';
+        ctx->password = ptr1;
+    }
 
     /* Look for the optional port component */
     ptr1 = strchr(ptr, ':');
@@ -138,7 +165,7 @@ status_t sstp_url_split(sstp_url_st **url, const char *path)
     }
 
     /* Either must be specified */
-    if (!ctx->protocol && !ctx->port)
+    if (!ctx->schema && !ctx->port)
     {
         ctx->port = "443";
     }
@@ -181,7 +208,7 @@ const char *sstp_norm_data(unsigned long long count, char *buf, int len)
     char v [] = { 'K', 'M', 'G', 'T' };
     int i = 0;
 
-    if (count < 1024) 
+    if (count <= 1024) 
     {
         snprintf(buf, len, "%llu bytes", count);
         return buf;
@@ -193,7 +220,7 @@ const char *sstp_norm_data(unsigned long long count, char *buf, int len)
         i++;
     }
 
-    snprintf(buf, len, "%.02f %cb", b, v[i]);
+    snprintf(buf, len, "%.02f %cb", b, v[i-1]);
     return buf;
 }
 
@@ -217,6 +244,204 @@ const char *sstp_norm_time(unsigned long t, char *buf, int len)
 
     snprintf(buf, len, "%lu seconds", t);
     return buf;
+}
+
+
+/*!
+ * @brief Convert sockaddr structure to an ip-string
+ */
+const char *sstp_ipaddr(struct sockaddr *addr, char *buf, int len)
+{
+    const char *retval = NULL;
+
+    switch (addr->sa_family)
+    {
+    case AF_INET:
+    {
+        struct sockaddr_in *in = (struct sockaddr_in*) addr;
+        if (inet_ntop(AF_INET, &in->sin_addr, buf, len))
+        {
+            retval = buf;
+        }
+        break;
+    }
+    case AF_INET6:
+    {
+        struct sockaddr_in6 *in = (struct sockaddr_in6*) addr;
+        if (inet_ntop(AF_INET6, &in->sin6_addr, buf, len))
+        {
+            retval = buf;
+        }
+        break;
+    }
+    default:
+        break;
+    }
+
+    return retval;
+}
+
+
+int sstp_get_uid(const char *name)
+{
+    struct passwd pwd;
+    struct passwd *res = NULL;
+    char *buff = NULL;
+    int blen = 0;
+
+    blen = sysconf(_SC_GETPW_R_SIZE_MAX);
+    if (blen == -1)
+    {
+        blen = 1024;
+    }
+
+    /* Allocate the memory */
+    buff = alloca(blen);
+    if (!buff)
+    {
+        return -1;
+    }
+
+    /* Get the password entry */
+    if (!getpwnam_r(name, &pwd, buff, blen, &res) && res)
+    {
+        return pwd.pw_uid;
+    }
+
+    return -1;
+}
+
+
+int sstp_get_gid(const char *name)
+{
+    struct group grp;
+    struct group *res = NULL;
+    char *buff = NULL;
+    int blen = 0;
+
+    blen = sysconf(_SC_GETGR_R_SIZE_MAX);
+    if (blen == -1)
+    {
+        blen = 1024;
+    }
+
+    /* Allocate the memory */
+    buff = alloca(blen);
+    if (!buff)
+    {
+        return -1;
+    }
+
+    /* Get the password entry */
+    if (!getgrnam_r(name, &grp, buff, blen, &res) && res)
+    {
+        return grp.gr_gid;
+    }
+
+    return -1;
+}
+
+
+int sstp_sandbox(const char *path, const char *user, const char *group)
+{
+    int gid = -1;
+    int uid = -1;
+    int retval = -1;
+
+    if (user)
+    {
+        uid = sstp_get_uid(user);
+    }
+    
+    if (group)
+    {
+        gid = sstp_get_gid(group);
+    }
+
+    /* Change the root directory */
+    if (path)
+    {
+        if (chdir(path) != 0)
+        {
+            log_warn("Could not change working directory, %m (%d)", errno);
+            goto done;
+        }
+
+        if (chroot(path) != 0)
+        {
+            log_warn("Could not change root directory, %m (%d)", errno);
+            goto done;
+        }
+    }
+
+    /* Set the group id (before setting user id) */
+    if (gid >= 0 && gid != getgid())
+    {
+        if (setgid(gid) != 0)
+        {
+            log_warn("Could not set process group id, %m (%d)", errno);
+            goto done;
+        }
+    }
+
+    /* Setting the user id */
+    if (uid >= 0 && uid != getuid())
+    {
+        if (setuid(uid) != 0)
+        {
+            log_warn("Could not set process user id, %m (%d)", errno);
+            goto done;
+        }
+    }
+
+    retval = 0;
+
+done:
+    
+    return (retval);
+}
+
+
+int sstp_create_dir(const char *path, const char *user, const char *group, mode_t mode)
+{
+    int ret = -1;
+    int gid = -1;
+    int uid = -1;
+    int retval = (-1);
+
+    /* Create the directory if it doesn't exists */
+    ret = mkdir(path, mode);
+    if (ret != 0 && errno != EEXIST)
+    {
+        log_err("Could not create directory: %s, %m (%d)", path, errno);
+        goto done;
+    }
+    
+    /* Get the user */
+    if (user)
+    {
+        uid = sstp_get_uid(user);
+    }
+
+    /* Get the group */
+    if (group)
+    {
+        gid = sstp_get_gid(group);
+    }
+
+    /* Change user/group permissions */
+    ret = chown(path, uid, gid);
+    if (ret != 0)
+    {
+        log_warn("Could not change permissions on %s, %m (%d)", path, errno);
+    }
+
+    /* Success */
+    retval = 0;
+
+done:
+
+    return retval;
 }
 
 

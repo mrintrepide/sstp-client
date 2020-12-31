@@ -1,6 +1,6 @@
 AC_PREREQ([2.67])
 AC_INIT([sstp-client], 
-        [1.0.1], 
+        [1.0.2], 
         [http://sourceforge.net/projects/sstp-client])
 
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
@@ -47,9 +47,37 @@ LDFLAGS="$LDFLAGS $OPENSSL_LDFLAGS"
 AC_CHECK_LIB([util], [openpty])
 
 
+# Specify privilege separation user
+AC_ARG_ENABLE(user,
+    AC_HELP_STRING([--enable-user=user], [Drop privileges after start to this user (default: sstpc)]))
+AS_IF([ test "${enable_user}" = "yes" || test x"${enable_user}" = x"" ],
+    [enable_user="sstpc"],
+    [enable_user="root"])
+AC_SUBST([enable_user])
+AC_DEFINE_UNQUOTED(SSTP_USER, "${enable_user}", The sstpc privilege drop user)
+
+
+# Specify privilege separation group
+AC_ARG_ENABLE(group,
+    AC_HELP_STRING([--enable-group=group], [Drop privileges after start to this group (default: sstpc)]))
+AS_IF([ test "${enable_group}" = "yes" || test x"${enable_group}" = x"" ],
+    [enable_group="sstpc"],
+    [enable_group="root"])
+AC_SUBST([enable_group])
+AC_DEFINE_UNQUOTED(SSTP_GROUP, "${enable_group}", The sstpc privilege drop group)
+
+
+# Specify runtime directory
+AC_ARG_WITH([runtime-dir], 
+	AC_HELP_STRING([--with-runtime-dir=DIR], [Specify the runtime directory for sstpc]))
+AS_IF([ test -n "$with_runtime_dir"],
+	[SSTP_RUNTIME_DIR="$with_runtime_dir"],
+	[SSTP_RUNTIME_DIR="${localstatedir}/run/sstpc"])
+AC_SUBST(SSTP_RUNTIME_DIR)
+
 # Check to see if we enabled PPP plug-in support (default:yes)
 AC_ARG_ENABLE(ppp-plugin, 
-    AC_HELP_STRING([--disable-ppp-plugin], [disable PPP Plugin support]),
+    AC_HELP_STRING([--disable-ppp-plugin=DIR], [disable PPP Plugin support]),
     [enable_ppp_plugin=${enableval}], [enable_ppp_plugin=yes])
 AS_IF([test "x$enable_ppp_plugin" != "xno"],
     AC_CHECK_HEADER(pppd/pppd.h,,
