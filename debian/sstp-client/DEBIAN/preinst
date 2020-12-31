@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 # creating sstpc group if it isn't already there
 if ! getent group sstpc >/dev/null; then
@@ -15,4 +15,5 @@ if ! getent passwd sstpc >/dev/null; then
           --shell /bin/false \
           sstpc  >/dev/null
 fi
+
 

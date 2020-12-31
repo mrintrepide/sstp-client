@@ -1,14 +1,5 @@
-d21f9da826c372f0142a53ac70b0b2f8  usr/include/sstp-client/sstp-api.h
-f697ebb143aa743fe2d6f86ea925112d  usr/lib/libsstp_api.a
-fb3210e3657dc3c531e0389843f85d2a  usr/lib/libsstp_api.la
-e95b88964d10922fca86c2fa40a203aa  usr/lib/libsstp_api.so.0.0.0
-fc857332782f7de061544df561ca83c1  usr/lib/pkgconfig/sstp-client-1.0.pc
-f027bfbe1f0702df5197143d2839b317  usr/lib/pppd/2.4.5/sstp-pppd-plugin.a
-d2fd9e372da8d3e7086c97d2fa9e7d65  usr/lib/pppd/2.4.5/sstp-pppd-plugin.la
-c36f534ac98a88e27e74ac90146ee61b  usr/lib/pppd/2.4.5/sstp-pppd-plugin.so
-55c76ad71e0ee7494b6d05c7fa5ae458  usr/sbin/sstpc
-1d0bc2cd04b6818c6821da3225bbacfb  usr/share/doc/sstp-client/changelog.gz
+e859b28a4f49e16a83309ff1cbbe4c4f  usr/lib/pppd/2.4.5/sstp-pppd-plugin.so
+ace47fe667819b45c8bdf508a5453b52  usr/sbin/sstpc
+6330fc2e3af1f07d7dd0b7b7efca6cc2  usr/share/doc/sstp-client/changelog.gz
 5c08411ac6911a2a3d14f6b3ef5d49e1  usr/share/doc/sstp-client/copyright
-959a1b27af7231584b8ecccad96e3019  usr/share/doc/sstp-client/sstp-test-nopty.example
-bbd60d2996043362f0fae9c5faf3df72  usr/share/doc/sstp-client/sstp-test.example
 7e475de350b77be197fbb9f043d71bbe  usr/share/man/man8/sstpc.8.gz

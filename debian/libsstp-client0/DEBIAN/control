@@ -1,0 +1,16 @@
+Package: libsstp-client0
+Source: sstp-client
+Version: 1.0.8
+Architecture: i386
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Installed-Size: 37
+Depends: libc6 (>= 2.1.3)
+Section: libs
+Priority: optional
+Homepage: http://sstp-client.sourceforge.net
+Description: Connect to a Microsoft Windows 2008 server using SSTP VPN
+ A client implementation of Secure Socket Tunneling Protocol (SSTP) for
+ Linux / Mac OS-X that allows remote access via SSTP VPN to Microsoft
+ Windows 2008 Server. It does so by tunneling PPP data over SSL.
+ .
+ This package provides the shared library libsstp-client0.

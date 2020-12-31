@@ -1,1 +1,3 @@
-sstp-client_1.0.6_amd64.deb net optional
+sstp-client_1.0.8_i386.deb net optional
+libsstp-client0_1.0.8_i386.deb libs optional
+libsstp-client-dev_1.0.8_i386.deb libdevel optional
