@@ -17,7 +17,7 @@ old_library='sstp-pppd-plugin.a'
 inherited_linker_flags=''
 
 # Libraries that this one depends upon.
-dependency_libs=' /usr/lib/libsstp_api.la -lutil /usr/lib/libevent.la -lnsl -lrt -lresolv -lssl -lcrypto'
+dependency_libs=' /usr/lib/libsstp_api.la -lutil -levent -lssl -lcrypto'
 
 # Names of additional weak libraries provided by this library
 weak_library_names=''

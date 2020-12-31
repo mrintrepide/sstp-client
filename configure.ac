@@ -1,6 +1,6 @@
-AC_PREREQ([2.67])
+AC_PREREQ([2.65])
 AC_INIT([sstp-client], 
-        [1.0.3],
+        [1.0.4],
         [http://sourceforge.net/projects/sstp-client])
 
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
@@ -96,8 +96,15 @@ else
 fi
 AC_SUBST(PPPD_PLUGIN_DIR)
 
+# Check if we have netlink support
+AC_CHECK_HEADER([linux/rtnetlink.h],
+    AC_DEFINE(HAVE_NETLINK, 1, [Use netlink to add/remove route]),
+    AC_MSG_WARN([Compiling without netlink support]),
+    [#include <sys/socket.h>
+     #include <linux/netlink.h>])
 
 # Checks for header files.
+AC_HEADER_STDBOOL
 AC_CHECK_HEADERS([  \
     arpa/inet.h     \
     fcntl.h         \
@@ -121,6 +128,7 @@ AC_TYPE_UINT8_T
 # Checks for library functions.
 AC_FUNC_ALLOCA
 AC_FUNC_FORK
+AC_FUNC_CHOWN
 AC_FUNC_MALLOC
 AC_CHECK_FUNCS([    \
     dup2            \
@@ -128,15 +136,17 @@ AC_CHECK_FUNCS([    \
     localtime_r     \
     memmove         \
     memset          \
+    mkdir           \
     socket          \
     strcasecmp      \
+    strncasecmp     \
     strchr          \
     strdup          \
     strrchr         \
     strstr          \
     strtoul         \
     strtoull])
-    
+
 AC_CONFIG_FILES([Makefile
                  sstp-client-1.0.pc
                  src/Makefile

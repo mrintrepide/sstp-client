@@ -17,7 +17,7 @@ old_library='libsstp_api.a'
 inherited_linker_flags=''
 
 # Libraries that this one depends upon.
-dependency_libs=' -lutil /usr/lib/libevent.la -lnsl -lrt -lresolv -lssl -lcrypto'
+dependency_libs=' -lutil -levent -lssl -lcrypto'
 
 # Names of additional weak libraries provided by this library
 weak_library_names=''

@@ -40,6 +40,16 @@ extern int mppe_keys_set;
 #endif
 #define SSTP_MAX_BUFLEN             255
 
+typedef struct sstp_mppe_ctx
+{
+    u_char mppe_send_key[MPPE_MAX_KEY_LEN];
+    u_char mppe_recv_key[MPPE_MAX_KEY_LEN];
+    int mppe_keys_set;
+} sstp_mppe_ctx_t;
+
+static sstp_mppe_ctx_t m_ctx = {};
+
+
 /*!
  * @brief PPP daemon requires this symbol to be exported
  */
@@ -47,10 +57,6 @@ const char pppd_version [] = VERSION;
 
 /*! The socket we send sstp-client our MPPE keys */
 static char sstp_sock[SSTP_MAX_BUFLEN+1];
-
-/*! Notify is sent to sstpc */
-static int  sstp_notify_sent = 0;
-
 
 /*! Set of options required for this module */
 static option_t sstp_option [] = 
@@ -75,12 +81,6 @@ static void sstp_send_notify(unsigned char *skey, int slen,
     uint8_t buf[SSTP_MAX_BUFLEN+1];
     sstp_api_msg_st  *msg  = NULL;
 
-    /* The MPPE keys must be set */
-    if (mppe_keys_set != 1)
-    {   
-        fatal("No MPPE keys are set during authentication");
-    }
-
     /* Open the socket */
     sock = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sock < 0)
@@ -104,11 +104,11 @@ static void sstp_send_notify(unsigned char *skey, int slen,
 
     /* Add the MPPE Send Key */
     sstp_api_attr_add(msg, SSTP_API_ATTR_MPPE_SEND, 
-            MPPE_MAX_KEY_LEN, mppe_send_key);
+            MPPE_MAX_KEY_LEN, skey);
 
     /* Add the MPPE Recv Key */
     sstp_api_attr_add(msg, SSTP_API_ATTR_MPPE_RECV, 
-            MPPE_MAX_KEY_LEN, mppe_recv_key);
+            MPPE_MAX_KEY_LEN, rkey);
 
     /* Send the structure */
     ret = send(sock, msg, sstp_api_msg_len(msg), 0);
@@ -124,9 +124,6 @@ static void sstp_send_notify(unsigned char *skey, int slen,
         fatal("Could not wait for ack from sstp-client");
     }
 
-    /* We've sent the notification */
-    sstp_notify_sent = 1;
-
     /* Close socket */
     close(sock);
 }
@@ -137,29 +134,16 @@ static void sstp_send_notify(unsigned char *skey, int slen,
  * 
  * @par Note:
  *  IF MPPE was enabled, the keys have been zeroed out for security
- *  reasons. We should have already notified sstpc. If we reach this
- *  code, ip-up was invoked and auth-type was not mschap-v2.
+ *  reasons. 
  *
  *  You can configure PAP, CHAP-MD5 and MSCHAP with the NAP service,
  *  these are disabled by Microsoft 2008 server by default.
  */
 static void sstp_ip_up(void *arg, int dummy)
 {
-    if (sstp_notify_sent)
-    {
-        return;
-    }
-
-    /* Auth-Type is not MSCHAPv2, reset the keys and send blank keys */
-    if (!mppe_keys_set)
-    {
-        memset(mppe_send_key, 0, sizeof(mppe_send_key));
-        memset(mppe_recv_key, 0, sizeof(mppe_recv_key));
-    }
-
     /* Send the MPPE keys to the sstpc client */
-    sstp_send_notify(mppe_send_key, sizeof(mppe_send_key), 
-            mppe_recv_key, sizeof(mppe_recv_key));
+    sstp_send_notify(m_ctx.mppe_send_key, sizeof(m_ctx.mppe_send_key),
+            m_ctx.mppe_recv_key, sizeof(m_ctx.mppe_recv_key));
 }
 
 
@@ -225,9 +209,11 @@ static void sstp_snoop_send(unsigned char *buf, int len)
         dbglog("%s: The mppe recv key: %s", __func__, key);
     }
 
-    /* Send the MPPE keys to the sstpc client */
-    sstp_send_notify(mppe_send_key, sizeof(mppe_send_key), 
-            mppe_recv_key, sizeof(mppe_recv_key));
+    memcpy(m_ctx.mppe_send_key, mppe_send_key, 
+        sizeof(m_ctx.mppe_send_key));
+    memcpy(m_ctx.mppe_recv_key, mppe_recv_key, 
+        sizeof(m_ctx.mppe_recv_key));
+    m_ctx.mppe_keys_set = 1;
 }
 
 
