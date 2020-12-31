@@ -7,12 +7,18 @@ SUBDIRS = \
           include           \
           src
 
+docdir         = $(datadir)/doc/@PACKAGE@
 pkgconfigdir   = $(libdir)/pkgconfig
 pkgconfig_DATA = sstp-client-1.0.pc
+
+doc_DATA       = \
+	sstp-test.example \
+	sstp-test-nopty.example
 
 man8_MANS = sstpc.8
 EXTRA_DIST = 		\
 	$(man8_MANS) 	\
+	$(doc_DATA)	\
 	support 	\
 	debian		\
 	sstp-client.spec\
