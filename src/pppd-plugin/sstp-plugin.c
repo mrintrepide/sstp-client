@@ -22,6 +22,8 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <config.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
@@ -96,7 +98,8 @@ static void sstp_send_notify(unsigned char *skey, int slen,
     ret = connect(sock, (struct sockaddr*) &addr, alen);
     if (ret < 0)
     {
-        fatal("Could not connect to sstp-client (%s), %m", sstp_sock);
+        fatal("Could not connect to sstp-client (%s), %s (%d)", sstp_sock,
+            strerror(errno), errno);
     }
 
     /* Create a new message */

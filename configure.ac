@@ -1,6 +1,6 @@
 AC_PREREQ([2.65])
 AC_INIT([sstp-client], 
-        [1.0.6],
+        [1.0.7],
         [http://sourceforge.net/projects/sstp-client])
 
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
@@ -114,6 +114,7 @@ AC_CHECK_HEADERS([  \
     stdlib.h        \
     string.h        \
     syslog.h        \
+    pty.h           \
     sys/types.h     \
     sys/socket.h    \
     unistd.h])

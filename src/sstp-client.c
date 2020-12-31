@@ -22,6 +22,7 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <config.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
@@ -90,7 +91,13 @@ static void sstp_client_pppd_cb(sstp_client_st *client, sstp_pppd_event_t ev)
         break;
 
     case SSTP_PPP_UP:
-        log_info("PPP UP");
+
+        /* Tell the state machine to connect */
+        ret = sstp_state_accept(client->state);
+        if (SSTP_FAIL == ret)
+        {
+            sstp_die("Negotiation with server failed", -1);
+        }
         break;
 
     case SSTP_PPP_AUTH:
@@ -108,14 +115,6 @@ static void sstp_client_pppd_cb(sstp_client_st *client, sstp_pppd_event_t ev)
 
         /* Set the keys */
         sstp_state_mppe_keys(client->state, skey, 16, rkey, 16);
-
-        /* Tell the state machine to connect */
-        ret = sstp_state_accept(client->state);
-        if (SSTP_FAIL == ret)
-        {
-            sstp_die("Negotiation with server failed", -1);
-        }
-
         break;
     }
 
@@ -413,7 +412,8 @@ static status_t sstp_client_connect(sstp_client_st *client,
     if (SSTP_INPROG != ret && 
         SSTP_OKAY   != ret)
     {
-        log_err("Could not connect to the server, %m (%d)", errno);
+        log_err("Could not connect to the server, %s (%d)", 
+            strerror(errno), errno);
         goto done;
     }
 
@@ -518,7 +518,7 @@ static status_t sstp_client_lookup(sstp_url_st *uri, sstp_peer_st *peer)
     }
 
     /* Save the results for later */
-    strncpy(peer->name, list->ai_canonname, sizeof(peer->name));
+    strncpy(peer->name, (list->ai_canonname) ? : uri->host, sizeof(peer->name));
     memcpy(&peer->addr, list->ai_addr, sizeof(peer->addr));
     peer->alen = list->ai_addrlen;
 

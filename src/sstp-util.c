@@ -21,6 +21,8 @@
  *  with this program; if not, write to the Free Software Foundation, Inc.,
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
+#include <config.h>
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -361,13 +363,15 @@ int sstp_sandbox(const char *path, const char *user, const char *group)
     {
         if (chdir(path) != 0)
         {
-            log_warn("Could not change working directory, %m (%d)", errno);
+            log_warn("Could not change working directory, %s (%d)", 
+                strerror(errno), errno);
             goto done;
         }
 
         if (chroot(path) != 0)
         {
-            log_warn("Could not change root directory, %m (%d)", errno);
+            log_warn("Could not change root directory, %s (%d)", 
+                strerror(errno), errno);
             goto done;
         }
     }
@@ -377,7 +381,8 @@ int sstp_sandbox(const char *path, const char *user, const char *group)
     {
         if (setgid(gid) != 0)
         {
-            log_warn("Could not set process group id, %m (%d)", errno);
+            log_warn("Could not set process group id, %s (%d)", 
+                strerror(errno), errno);
             goto done;
         }
     }
@@ -387,7 +392,8 @@ int sstp_sandbox(const char *path, const char *user, const char *group)
     {
         if (setuid(uid) != 0)
         {
-            log_warn("Could not set process user id, %m (%d)", errno);
+            log_warn("Could not set process user id, %s (%d)", 
+                strerror(errno), errno);
             goto done;
         }
     }
@@ -411,7 +417,8 @@ int sstp_create_dir(const char *path, const char *user, const char *group, mode_
     ret = mkdir(path, mode);
     if (ret != 0 && errno != EEXIST)
     {
-        log_err("Could not create directory: %s, %m (%d)", path, errno);
+        log_err("Could not create directory: %s, %s (%d)", 
+            path, strerror(errno), errno);
         goto done;
     }
     
@@ -431,7 +438,8 @@ int sstp_create_dir(const char *path, const char *user, const char *group, mode_
     ret = chown(path, uid, gid);
     if (ret != 0)
     {
-        log_warn("Could not change permissions on %s, %m (%d)", path, errno);
+        log_warn("Could not change permissions on %s, %s (%d)", 
+            path, strerror(errno), errno);
     }
 
     /* Success */
