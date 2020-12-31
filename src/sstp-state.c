@@ -34,9 +34,6 @@ struct sstp_state
     /*! Specifies the server or client mode */
     int mode;
 
-    /*! The event receiver */
-    struct event recv;
-
     /*! The current client connection */
     sstp_stream_st *stream;
 
@@ -181,6 +178,9 @@ static status_t sstp_state_echo_request(sstp_state_st *ctx)
         goto done;
     }
 
+    /* Dump the packet */
+    sstp_pkt_trace(ctx->tx_buf);
+
     /* Send the Echo Response back to server */
     status = sstp_stream_send(ctx->stream, ctx->tx_buf, (sstp_complete_fn)
             sstp_state_send_complete, ctx, 10);
@@ -210,6 +210,9 @@ static status_t sstp_state_echo_reply(sstp_state_st *ctx)
         goto done;
     }
 
+    /* Dump the packet */
+    sstp_pkt_trace(ctx->tx_buf);
+
     /* Send the Echo Response back to server */
     status = sstp_stream_send(ctx->stream, ctx->tx_buf, (sstp_complete_fn)
             sstp_state_send_complete, ctx, 10);
@@ -235,6 +238,9 @@ static status_t sstp_state_disconnect(sstp_state_st *ctx)
     {
         goto done;
     }
+
+    /* Dump the packet */
+    sstp_pkt_trace(ctx->tx_buf);
 
     /* Send the Echo Response back to server */
     status = sstp_stream_send(ctx->stream, ctx->tx_buf, (sstp_complete_fn)
@@ -262,6 +268,9 @@ static status_t sstp_state_disconnect_ack(sstp_state_st *ctx)
         goto done;
     }
 
+    /* Dump the packet */
+    sstp_pkt_trace(ctx->tx_buf);
+
     /* Send the Echo Response back to server */
     status = sstp_stream_send(ctx->stream, ctx->tx_buf, (sstp_complete_fn)
             sstp_state_send_complete, ctx, 10);
@@ -282,7 +291,7 @@ static status_t sstp_state_connect_nak(sstp_state_st *ctx, sstp_msg_t type,
     sstp_attr_st *attr = NULL;
     status_t retval = SSTP_FAIL;
     uint32_t status = 0;
-    uint8_t id = 0;
+    // uint8_t id = 0;
     int count  = SSTP_ATTR_MAX + 1;
     int ret    = 0;
     int len    = 0;
@@ -315,7 +324,7 @@ static status_t sstp_state_connect_nak(sstp_state_st *ctx, sstp_msg_t type,
     }
 
     /* Get the faulty attribute */
-    id = data[index+3] & 0xFF;
+    // id = data[index+3] & 0xFF;
     index += 4;
 
     /* Get the status */
@@ -420,6 +429,9 @@ static void sstp_state_handle_packet(sstp_state_st *ctx, sstp_buff_st *buf)
 {
     sstp_msg_t type;
 
+    /* Dump Packet */
+    sstp_pkt_trace(buf);
+
     /* Handle the packet type */
     switch (sstp_pkt_type(buf, &type))
     {
@@ -501,6 +513,9 @@ static status_t sstp_state_send_request(sstp_state_st *ctx)
     {
         goto done;
     }
+
+    /* Dump the packet */
+    sstp_pkt_trace(ctx->tx_buf);
 
     /* Send the Call Connect request to the server */
     status = sstp_stream_send(ctx->stream, ctx->tx_buf, (sstp_complete_fn)
@@ -585,6 +600,9 @@ static status_t sstp_state_send_connect(sstp_state_st *ctx)
             sizeof(ctx->mppe_recv_key));
     sstp_cmac_result(&cmac, (uint8_t*) &ctx->tx_buf->data[0], 
             ctx->tx_buf->len, (uint8_t*) &ctx->tx_buf->data[80], 32);
+
+    /* Dump the packet */
+    sstp_pkt_trace(ctx->tx_buf);
 
     /* Success */
     status = sstp_stream_send(ctx->stream, ctx->tx_buf, (sstp_complete_fn)

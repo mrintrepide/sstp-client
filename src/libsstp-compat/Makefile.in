@@ -34,7 +34,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-subdir = src/pppd-plugin
+subdir = src/libsstp-compat
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_library.m4 \
@@ -49,44 +49,17 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
-am__vpath_adj = case $$p in \
-    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
-    *) f=$$p;; \
-  esac;
-am__strip_dir = f=`echo $$p | sed -e 's|^.*/||'`;
-am__install_max = 40
-am__nobase_strip_setup = \
-  srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*|]/\\\\&/g'`
-am__nobase_strip = \
-  for p in $$list; do echo "$$p"; done | sed -e "s|$$srcdirstrip/||"
-am__nobase_list = $(am__nobase_strip_setup); \
-  for p in $$list; do echo "$$p $$p"; done | \
-  sed "s| $$srcdirstrip/| |;"' / .*\//!s/ .*/ ./; s,\( .*\)/[^/]*$$,\1,' | \
-  $(AWK) 'BEGIN { files["."] = "" } { files[$$2] = files[$$2] " " $$1; \
-    if (++n[$$2] == $(am__install_max)) \
-      { print $$2, files[$$2]; n[$$2] = 0; files[$$2] = "" } } \
-    END { for (dir in files) print dir, files[dir] }'
-am__base_list = \
-  sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
-  sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
-am__installdirs = "$(DESTDIR)$(pppd_plugindir)"
-LTLIBRARIES = $(pppd_plugin_LTLIBRARIES)
-@WITH_PPP_PLUGIN_TRUE@sstp_pppd_plugin_la_DEPENDENCIES =  \
-@WITH_PPP_PLUGIN_TRUE@	../libsstp-api/libsstp_api.la
-am__sstp_pppd_plugin_la_SOURCES_DIST = sstp-plugin.c
-@WITH_PPP_PLUGIN_TRUE@am_sstp_pppd_plugin_la_OBJECTS =  \
-@WITH_PPP_PLUGIN_TRUE@	sstp_pppd_plugin_la-sstp-plugin.lo
-sstp_pppd_plugin_la_OBJECTS = $(am_sstp_pppd_plugin_la_OBJECTS)
+LTLIBRARIES = $(noinst_LTLIBRARIES)
+libsstp_compat_la_LIBADD =
+am_libsstp_compat_la_OBJECTS = libsstp_compat_la-sstp-compat.lo
+libsstp_compat_la_OBJECTS = $(am_libsstp_compat_la_OBJECTS)
 AM_V_lt = $(am__v_lt_$(V))
 am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
 am__v_lt_0 = --silent
-sstp_pppd_plugin_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+libsstp_compat_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
-	$(sstp_pppd_plugin_la_CFLAGS) $(CFLAGS) \
-	$(sstp_pppd_plugin_la_LDFLAGS) $(LDFLAGS) -o $@
-@WITH_PPP_PLUGIN_TRUE@am_sstp_pppd_plugin_la_rpath = -rpath \
-@WITH_PPP_PLUGIN_TRUE@	$(pppd_plugindir)
+	$(libsstp_compat_la_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
+	-o $@
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -113,8 +86,8 @@ am__v_CCLD_0 = @echo "  CCLD  " $@;
 AM_V_GEN = $(am__v_GEN_$(V))
 am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
 am__v_GEN_0 = @echo "  GEN   " $@;
-SOURCES = $(sstp_pppd_plugin_la_SOURCES)
-DIST_SOURCES = $(am__sstp_pppd_plugin_la_SOURCES_DIST)
+SOURCES = $(libsstp_compat_la_SOURCES)
+DIST_SOURCES = $(libsstp_compat_la_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -240,12 +213,11 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-@WITH_PPP_PLUGIN_TRUE@pppd_plugindir = $(PPPD_PLUGIN_DIR)
-@WITH_PPP_PLUGIN_TRUE@pppd_plugin_LTLIBRARIES = sstp-pppd-plugin.la
-@WITH_PPP_PLUGIN_TRUE@sstp_pppd_plugin_la_CFLAGS = -I$(top_srcdir)/include
-@WITH_PPP_PLUGIN_TRUE@sstp_pppd_plugin_la_LDFLAGS = -module -avoid-version
-@WITH_PPP_PLUGIN_TRUE@sstp_pppd_plugin_la_LIBADD = ../libsstp-api/libsstp_api.la
-@WITH_PPP_PLUGIN_TRUE@sstp_pppd_plugin_la_SOURCES = sstp-plugin.c 
+noinst_LTLIBRARIES = libsstp_compat.la
+libsstp_compat_la_CFLAGS = -I$(top_srcdir)/include
+libsstp_compat_la_SOURCES = \
+    sstp-compat.c
+
 all: all-am
 
 .SUFFIXES:
@@ -259,9 +231,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu src/pppd-plugin/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu src/libsstp-compat/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu src/pppd-plugin/Makefile
+	  $(AUTOMAKE) --gnu src/libsstp-compat/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -280,39 +252,17 @@ $(top_srcdir)/configure:  $(am__configure_deps)
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
-install-pppd_pluginLTLIBRARIES: $(pppd_plugin_LTLIBRARIES)
-	@$(NORMAL_INSTALL)
-	test -z "$(pppd_plugindir)" || $(MKDIR_P) "$(DESTDIR)$(pppd_plugindir)"
-	@list='$(pppd_plugin_LTLIBRARIES)'; test -n "$(pppd_plugindir)" || list=; \
-	list2=; for p in $$list; do \
-	  if test -f $$p; then \
-	    list2="$$list2 $$p"; \
-	  else :; fi; \
-	done; \
-	test -z "$$list2" || { \
-	  echo " $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$list2 '$(DESTDIR)$(pppd_plugindir)'"; \
-	  $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$list2 "$(DESTDIR)$(pppd_plugindir)"; \
-	}
 
-uninstall-pppd_pluginLTLIBRARIES:
-	@$(NORMAL_UNINSTALL)
-	@list='$(pppd_plugin_LTLIBRARIES)'; test -n "$(pppd_plugindir)" || list=; \
-	for p in $$list; do \
-	  $(am__strip_dir) \
-	  echo " $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=uninstall rm -f '$(DESTDIR)$(pppd_plugindir)/$$f'"; \
-	  $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=uninstall rm -f "$(DESTDIR)$(pppd_plugindir)/$$f"; \
-	done
-
-clean-pppd_pluginLTLIBRARIES:
-	-test -z "$(pppd_plugin_LTLIBRARIES)" || rm -f $(pppd_plugin_LTLIBRARIES)
-	@list='$(pppd_plugin_LTLIBRARIES)'; for p in $$list; do \
+clean-noinstLTLIBRARIES:
+	-test -z "$(noinst_LTLIBRARIES)" || rm -f $(noinst_LTLIBRARIES)
+	@list='$(noinst_LTLIBRARIES)'; for p in $$list; do \
 	  dir="`echo $$p | sed -e 's|/[^/]*$$||'`"; \
 	  test "$$dir" != "$$p" || dir=.; \
 	  echo "rm -f \"$${dir}/so_locations\""; \
 	  rm -f "$${dir}/so_locations"; \
 	done
-sstp-pppd-plugin.la: $(sstp_pppd_plugin_la_OBJECTS) $(sstp_pppd_plugin_la_DEPENDENCIES) 
-	$(AM_V_CCLD)$(sstp_pppd_plugin_la_LINK) $(am_sstp_pppd_plugin_la_rpath) $(sstp_pppd_plugin_la_OBJECTS) $(sstp_pppd_plugin_la_LIBADD) $(LIBS)
+libsstp_compat.la: $(libsstp_compat_la_OBJECTS) $(libsstp_compat_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(libsstp_compat_la_LINK)  $(libsstp_compat_la_OBJECTS) $(libsstp_compat_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -320,7 +270,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sstp_pppd_plugin_la-sstp-plugin.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libsstp_compat_la-sstp-compat.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -346,13 +296,13 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
 
-sstp_pppd_plugin_la-sstp-plugin.lo: sstp-plugin.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sstp_pppd_plugin_la_CFLAGS) $(CFLAGS) -MT sstp_pppd_plugin_la-sstp-plugin.lo -MD -MP -MF $(DEPDIR)/sstp_pppd_plugin_la-sstp-plugin.Tpo -c -o sstp_pppd_plugin_la-sstp-plugin.lo `test -f 'sstp-plugin.c' || echo '$(srcdir)/'`sstp-plugin.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/sstp_pppd_plugin_la-sstp-plugin.Tpo $(DEPDIR)/sstp_pppd_plugin_la-sstp-plugin.Plo
+libsstp_compat_la-sstp-compat.lo: sstp-compat.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsstp_compat_la_CFLAGS) $(CFLAGS) -MT libsstp_compat_la-sstp-compat.lo -MD -MP -MF $(DEPDIR)/libsstp_compat_la-sstp-compat.Tpo -c -o libsstp_compat_la-sstp-compat.lo `test -f 'sstp-compat.c' || echo '$(srcdir)/'`sstp-compat.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libsstp_compat_la-sstp-compat.Tpo $(DEPDIR)/libsstp_compat_la-sstp-compat.Plo
 @am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sstp-plugin.c' object='sstp_pppd_plugin_la-sstp-plugin.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sstp-compat.c' object='libsstp_compat_la-sstp-compat.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sstp_pppd_plugin_la_CFLAGS) $(CFLAGS) -c -o sstp_pppd_plugin_la-sstp-plugin.lo `test -f 'sstp-plugin.c' || echo '$(srcdir)/'`sstp-plugin.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsstp_compat_la_CFLAGS) $(CFLAGS) -c -o libsstp_compat_la-sstp-compat.lo `test -f 'sstp-compat.c' || echo '$(srcdir)/'`sstp-compat.c
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -446,9 +396,6 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(LTLIBRARIES)
 installdirs:
-	for dir in "$(DESTDIR)$(pppd_plugindir)"; do \
-	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
-	done
 install: install-am
 install-exec: install-exec-am
 install-data: install-data-am
@@ -476,7 +423,7 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-generic clean-libtool clean-pppd_pluginLTLIBRARIES \
+clean-am: clean-generic clean-libtool clean-noinstLTLIBRARIES \
 	mostlyclean-am
 
 distclean: distclean-am
@@ -497,7 +444,7 @@ info: info-am
 
 info-am:
 
-install-data-am: install-pppd_pluginLTLIBRARIES
+install-data-am:
 
 install-dvi: install-dvi-am
 
@@ -543,23 +490,22 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-pppd_pluginLTLIBRARIES
+uninstall-am:
 
 .MAKE: install-am install-strip
 
 .PHONY: CTAGS GTAGS all all-am check check-am clean clean-generic \
-	clean-libtool clean-pppd_pluginLTLIBRARIES ctags distclean \
+	clean-libtool clean-noinstLTLIBRARIES ctags distclean \
 	distclean-compile distclean-generic distclean-libtool \
 	distclean-tags distdir dvi dvi-am html html-am info info-am \
 	install install-am install-data install-data-am install-dvi \
 	install-dvi-am install-exec install-exec-am install-html \
 	install-html-am install-info install-info-am install-man \
-	install-pdf install-pdf-am install-pppd_pluginLTLIBRARIES \
-	install-ps install-ps-am install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags uninstall uninstall-am uninstall-pppd_pluginLTLIBRARIES
+	install-pdf install-pdf-am install-ps install-ps-am \
+	install-strip installcheck installcheck-am installdirs \
+	maintainer-clean maintainer-clean-generic mostlyclean \
+	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
+	pdf pdf-am ps ps-am tags uninstall uninstall-am
 
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.

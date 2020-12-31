@@ -1,2 +1,2 @@
 version=3
-http://sourceforge.net/projects/sstp-client/files/sstp-client-([0-9\.])*.tar.gz
+http://sf.net/sstp-client/sstp-client-(\d.*).tar.gz

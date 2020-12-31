@@ -39,6 +39,9 @@
 /* Define to 1 if you have the `event' library (-levent). */
 #undef HAVE_LIBEVENT
 
+/* Specify use of libevent >= $LIBEVENT2_MINIMUM */
+#undef HAVE_LIBEVENT2
+
 /* Define to 1 if you have the `util' library (-lutil). */
 #undef HAVE_LIBUTIL
 
@@ -63,6 +66,9 @@
 
 /* Define to 1 if you have the <paths.h> header file. */
 #undef HAVE_PATHS_H
+
+/* Define if you have PPP support */
+#undef HAVE_PPP_PLUGIN
 
 /* Define to 1 if you have the `socket' function. */
 #undef HAVE_SOCKET
@@ -168,9 +174,6 @@
 
 /* Version number of package */
 #undef VERSION
-
-/* Define if you have PPP support */
-#undef WITH_PPP
 
 /* Define for Solaris 2.5.1 so the uint32_t typedef from <sys/synch.h>,
    <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the

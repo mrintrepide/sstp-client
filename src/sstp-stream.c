@@ -50,17 +50,6 @@
 
 
 /*!
- * @brief Global SSL context structure
- */
-typedef struct
-{
-    /*< The SSL Context */
-    SSL_CTX *ssl_ctx;
-
-} sstp_ssl_st;
-
-
-/*!
  * @brief A asynchronous send or recv channel object
  */
 typedef struct
@@ -69,7 +58,7 @@ typedef struct
     int sock;
 
     /*< The event structure */
-    event_st event;
+    event_st *ev_event;
 
     /*< Timeout if any */
     timeval_st tout;
@@ -100,6 +89,9 @@ struct sstp_stream
     /*< The SSL connection context */
     SSL *ssl;
 
+    /*< The SSL context structure */
+    SSL_CTX *ssl_ctx;
+
     /*< The length check function */
     sstp_recv_fn recv_cb;
 
@@ -108,6 +100,9 @@ struct sstp_stream
 
     /*< Channel for send operation */
     sstp_channel_st send;
+
+    /*< The event base */
+    event_base_st *ev_base;
 };
 
 
@@ -338,14 +333,14 @@ status_t sstp_stream_recv(sstp_stream_st *ctx, sstp_buff_st *buf,
 
     case SSL_ERROR_WANT_READ:
         event |= EV_READ;
-        event_set(&ch->event, ch->sock, event,
+        event_set(ch->ev_event, ch->sock, event,
                 (event_fn) sstp_recv_cont, ctx);
         status = SSTP_INPROG;
         goto done;
 
     case SSL_ERROR_WANT_WRITE:
         event |= EV_WRITE;
-        event_set(&ch->event, ch->sock, event,
+        event_set(ch->ev_event, ch->sock, event,
                 (event_fn) sstp_recv_cont, ctx);
         status = SSTP_INPROG;
         goto done;
@@ -363,8 +358,11 @@ done:
         return status;
     }
 
+    /* Update the event base */
+    event_base_set(ctx->ev_base, ch->ev_event);
+
     /* Add the event */
-    ret = event_add(&ch->event, &ch->tout);
+    ret = event_add(ch->ev_event, &ch->tout);
     if (ret != 0)
     {
         log_err("Could not add new event");
@@ -413,14 +411,14 @@ status_t sstp_stream_recv_sstp(sstp_stream_st *ctx, sstp_buff_st *buf,
 
         case SSL_ERROR_WANT_READ:
             event |= EV_READ;
-            event_set(&ch->event, ch->sock, event,
+            event_set(ch->ev_event, ch->sock, event,
                     (event_fn) sstp_recv_cont, ctx);
             status = SSTP_INPROG;
             goto done;
 
         case SSL_ERROR_WANT_WRITE:
             event |= EV_WRITE;
-            event_set(&ch->event, ch->sock, event,
+            event_set(ch->ev_event, ch->sock, event,
                     (event_fn) sstp_recv_cont, ctx);
             status = SSTP_INPROG;
             goto done;
@@ -443,8 +441,11 @@ done:
         return status;
     }
 
+    /* Update the event base */
+    event_base_set(ctx->ev_base, ch->ev_event);
+
     /* Add the event */
-    ret = event_add(&ch->event, &ch->tout);
+    ret = event_add(ch->ev_event, &ch->tout);
     if (ret != 0)
     {
         log_err("Could not add new event");
@@ -475,11 +476,12 @@ void sstp_stream_setrecv(struct sstp_stream *ctx, sstp_recv_fn recv_cb,
     }
 
     /* Setup a receive event */
-    event_set(&ch->event, ch->sock, event, (event_fn)
+    ch->ev_event = event_new(ctx->ev_base, ch->sock, event, (event_fn)
             sstp_recv_cont, ctx);
+    event_base_set(ctx->ev_base, ch->ev_event);
 
     /* Add the event */
-    event_add(&ch->event, (timeout > 0) ? &ch->tout : NULL);
+    event_add(ch->ev_event, (timeout > 0) ? &ch->tout : NULL);
 }
 
 
@@ -591,7 +593,6 @@ status_t sstp_stream_send(sstp_stream_st *stream, sstp_buff_st *buf,
     sstp_channel_setup(stream, ch, buf, timeout, complete, arg);
     stream->last = time(NULL);
 
-
     do
     {
         /* Try SSL write to the socket */
@@ -604,13 +605,13 @@ status_t sstp_stream_send(sstp_stream_st *stream, sstp_buff_st *buf,
             break;
 
         case SSL_ERROR_WANT_READ:
-            event_set(&ch->event, ch->sock, EV_READ | EV_TIMEOUT,
+            event_set(ch->ev_event, ch->sock, EV_READ | EV_TIMEOUT,
                     (event_fn) sstp_send_cont, stream);
             status = SSTP_INPROG;
             goto done;
         
         case SSL_ERROR_WANT_WRITE:
-            event_set(&ch->event, ch->sock, EV_WRITE | EV_TIMEOUT,
+            event_set(ch->ev_event, ch->sock, EV_WRITE | EV_TIMEOUT,
                     (event_fn) sstp_send_cont, stream);
             status = SSTP_INPROG;
             goto done;
@@ -632,9 +633,12 @@ done:
     {
         return status;
     }
+    
+    /* Update the event base */
+    event_base_set(stream->ev_base, ch->ev_event);
 
     /* Add the event */
-    ret = event_add(&ch->event, &ch->tout);
+    ret = event_add(ch->ev_event, &ch->tout);
     if (ret != 0)
     {
         log_err("Could not add new event");
@@ -648,21 +652,13 @@ done:
 
 static status_t sstp_stream_setup(sstp_stream_st *stream)
 {
-    /* Get the global SSL context
-    sstp_ssl_st *ssl = (sstp_ssl_st*) sstp_module_get("ssl");
-    if (!ssl || !stream)
+    /* Associate the streams */
+    stream->ssl = SSL_new(stream->ssl_ctx);
+    if (stream->ssl == NULL)
     {
-        log_err("Could not create SSL Connection");
+        log_err("Could not create SSL session", -1);
         goto done;
     }
-
-    stream->ssl = SSL_new(ssl->ssl_ctx);
-    if (!stream->ssl)
-    {   
-        log_err("Could not create SSL Connection context");
-        goto done;
-    }
-    */
 
     /* Associate a socket with the connection */
     if (SSL_set_fd(stream->ssl, stream->sock) < 0)
@@ -766,11 +762,11 @@ status_t sstp_stream_connect(sstp_stream_st *stream, struct sockaddr *addr,
         sstp_channel_setup(stream, ch, NULL, timeout, complete, arg);
 
         /* Setup the callback */
-        event_set(&ch->event, ch->sock, EV_WRITE | EV_TIMEOUT,
+        ch->ev_event = event_new(stream->ev_base, ch->sock, EV_WRITE | EV_TIMEOUT,
                 (event_fn) sstp_connect_complete, stream);
 
         /* Add event to event-loop */
-        ret = event_add(&ch->event, &ch->tout);
+        ret = event_add(ch->ev_event, &ch->tout);
         if (ret != 0)
         {
             log_err("Could not add new event");
@@ -822,6 +818,20 @@ status_t sstp_stream_destroy(sstp_stream_st *stream)
     SSL_free(stream->ssl);
     stream->ssl = NULL;
 
+    /* Free the send event */
+    if (stream->send.ev_event)
+    {
+        event_del(stream->send.ev_event);
+        event_free(stream->send.ev_event);
+    }
+
+    /* Free the receive event */
+    if (stream->recv.ev_event)
+    {
+        event_del(stream->recv.ev_event);
+        event_free(stream->recv.ev_event);
+    }
+
     /* Free the stream */
     free(stream);
 
@@ -834,7 +844,8 @@ done:
 }
 
 
-status_t sstp_stream_create(sstp_stream_st **stream, SSL *ctx)
+status_t sstp_stream_create(sstp_stream_st **stream, event_base_st *base, 
+        SSL_CTX *ssl)
 {
     /* Create a new stream */
     sstp_stream_st *stream_= calloc(1, sizeof(sstp_stream_st));
@@ -844,8 +855,8 @@ status_t sstp_stream_create(sstp_stream_st **stream, SSL *ctx)
     }
 
     /* Associate stream with ssl context */
-    stream_->ssl  = ctx;
-    stream_->sock = SSL_get_fd(ctx);
+    stream_->ev_base = base;
+    stream_->ssl_ctx = ssl;
     *stream = stream_;
 
     /* Success */

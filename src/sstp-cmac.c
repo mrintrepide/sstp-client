@@ -90,34 +90,38 @@ void sstp_cmac_result(cmac_ctx_st *ctx, uint8_t *msg, int mlen, uint8_t *result,
     /* We start with the seed */
     HMAC_CTX hmac;
     uint8_t  key[EVP_MAX_MD_SIZE];
-    uint8_t  klen = sizeof(key);
+    unsigned int klen = sizeof(key);
     uint8_t  iter = 0x01;
     uint16_t len  = SHA_DIGEST_LENGTH;
-    const EVP_MD *evp = EVP_sha1();
+    const EVP_MD *(*evp)() = EVP_sha1;
 
     /* The 256-bit keys are a bit different */
     if (SSTP_CMAC_SHA256 & ctx->flag)
     {
         len = SHA256_DIGEST_LENGTH;
-        evp = EVP_sha256();
+        evp = EVP_sha256;
     }
-
+    
     /*
      * Generate the Key first, using the T1 = HMAC(HLAK, S | LEN | 0x01),
-     *   CMACK = T1
+     *   CMACK = T1a
      */
-    HMAC_Init   (&hmac, ctx->key, sizeof(ctx->key), evp);
+    HMAC_CTX_init(&hmac);
+    HMAC_Init   (&hmac, ctx->key, sizeof(ctx->key), evp());
     HMAC_Update (&hmac, (uint8_t*) ctx->seed,  ctx->slen);
     HMAC_Update (&hmac, (uint8_t*) &len,  (int) sizeof(len));
     HMAC_Update (&hmac, (uint8_t*) &iter, (int) sizeof(iter));
-    HMAC_Final  (&hmac, key, (unsigned int*) &klen);
+    HMAC_Final  (&hmac, key, &klen);
+    HMAC_CTX_cleanup(&hmac);
 
     /*
      * Generate the Compound MAC Field
      */
-    HMAC_Init   (&hmac, key, klen, evp);
+    HMAC_CTX_init(&hmac);
+    HMAC_Init   (&hmac, key, klen, evp());
     HMAC_Update (&hmac, msg, mlen);
     HMAC_Final  (&hmac, result, (unsigned int*) &length);
+    HMAC_CTX_cleanup(&hmac);
 }
 
 

@@ -175,6 +175,51 @@ void sstp_url_free(sstp_url_st *url)
 }
 
 
+const char *sstp_norm_data(unsigned long long count, char *buf, int len)
+{
+    float b = count;
+    char v [] = { 'K', 'M', 'G', 'T' };
+    int i = 0;
+
+    if (count < 1024) 
+    {
+        snprintf(buf, len, "%llu bytes", count);
+        return buf;
+    }
+
+    while (b > 1024)
+    {
+        b /= 1024;
+        i++;
+    }
+
+    snprintf(buf, len, "%.02f %cb", b, v[i]);
+    return buf;
+}
+
+
+/*!
+ * @brief Normilize into hour, min or sec.
+ */
+const char *sstp_norm_time(unsigned long t, char *buf, int len)
+{
+    if (t > 3600)
+    {
+        snprintf(buf, len, "%.02f hour(s)", (float)t/3600);
+        return buf;
+    }
+
+    if (t > 60)
+    {
+        snprintf(buf, len, "%.02f minute(s)", (float)t/60);
+        return buf;
+    }
+
+    snprintf(buf, len, "%lu seconds", t);
+    return buf;
+}
+
+
 #if 0
 int main(int argc, char *argv[])
 {

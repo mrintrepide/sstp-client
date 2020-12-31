@@ -47,15 +47,59 @@ struct sstp_pppd
     sstp_stream_st *stream;
 
     /*< Listener for retrieving data from pppd */
-    event_st recv;
+    event_st *ev_recv;
+
+    /*< The event base */
+    event_base_st *ev_base;
+
+    /*< The chap structure */
+    sstp_chap_st chap;
+
+    /*< The notify function */
+    sstp_pppd_fn notify;
+    
+    /*< The argument to pass to this function */
+    void *arg;
 
     /*< The socket to pppd */
     int sock;
+    
+    /*< Should we stil continue checking for CHAP structure */
+    int auth_done;
 
+    /*< The time pppd was terminated */
+    unsigned long t_end;
+
+    /*< The time pppd was started */
+    unsigned long t_start;
+
+    /*< The number of bytes sent */
+    unsigned long long sent_bytes;
+
+    /*< The number of bytes received */
+    unsigned long long recv_bytes;
 };
 
 
 static status_t ppp_process_data(sstp_pppd_st *ctx);
+
+
+/*!
+ * @brief Record the number of bytes sent to host from server
+ */
+static void ppp_record_recv(sstp_pppd_st *ctx, unsigned int len)
+{
+    ctx->recv_bytes += len;
+}
+
+
+/*!
+ * @brief Record the number of bytes sent to server from host
+ */
+static void ppp_record_sent(sstp_pppd_st *ctx, unsigned int len)
+{
+    ctx->sent_bytes += len;
+}
 
 
 /*!
@@ -84,8 +128,11 @@ static void ppp_send_complete(sstp_stream_st *stream, sstp_buff_st *buf,
         break;
 
     case SSTP_OKAY:
+        /* Record the number of bytes sent */
+        ppp_record_sent(ctx, buf->len);
+
         /* We had to trottle the recevie operation, re-start */
-        event_add(&ctx->recv, NULL);
+        event_add(ctx->ev_recv, NULL);
         break;
 
     case SSTP_FAIL:
@@ -94,6 +141,80 @@ static void ppp_send_complete(sstp_stream_st *stream, sstp_buff_st *buf,
         break;
     }
 }
+
+
+/*! 
+ * @brief Retrieve the CHAP context
+ */
+sstp_chap_st *sstp_pppd_getchap(sstp_pppd_st *ctx)
+{
+    return (&ctx->chap);
+}
+
+
+void sstp_pppd_session_details(sstp_pppd_st *ctx, sstp_session_st *sess)
+{
+    sess->established = ((ctx->t_end == 0) ? time(NULL) : ctx->t_end) - 
+        ctx->t_start;
+    sess->rx_bytes = ctx->recv_bytes;
+    sess->tx_bytes = ctx->sent_bytes;
+}
+
+
+#ifndef HAVE_PPP_PLUGIN
+
+/*!
+ * @brief Intercept any CHAP / PAP authentication with the peer.
+ */
+static void sstp_pppd_check_auth(sstp_pppd_st* ctx, sstp_buff_st *tx)
+{
+    const char *buf = sstp_pkt_data(tx);
+    int ret = 0;
+
+    /* Check if we have received the CHAP credentials */
+    switch (ntohs(*(uint16_t*)buf))
+    {
+    case SSTP_PPP_AUTH_CHAP:
+
+        /* At this point, calculate the MPPE key ourselves */
+        if (buf[2] == 0x02)
+        {
+            memcpy(&ctx->chap, &buf[7], sizeof(sstp_chap_st));
+
+            if (ctx->notify)
+            {
+                ctx->notify(ctx->arg, SSTP_PPP_AUTH);
+            }
+
+            ctx->auth_done = 1;
+            break;
+        }
+
+        if (buf[2] == 0x04)
+        {
+            log_info("Unsupported");
+            break;
+        }
+        break;
+
+    case SSTP_PPP_AUTH_PAP:
+        
+        log_info("PAP");
+
+        /* No need to set the MPPE keys, they are all zero */
+        //ret = sstp_state_accept(ctx->state);
+        if (SSTP_FAIL == ret)
+        {
+            sstp_die("Negotiation with server failed", -1);
+        }
+
+    default:
+
+        break;
+    }
+}
+
+#endif  /* HAVE_PPP_PLUGIN */
 
 
 /*!
@@ -153,6 +274,13 @@ static status_t ppp_process_data(sstp_pppd_st *ctx)
         /* Update the final length of the packet */
         sstp_pkt_update(tx);
 
+#ifndef HAVE_PPP_PLUGIN
+        if (!ctx->auth_done) 
+        {
+            sstp_pppd_check_auth(ctx, tx);
+        }
+#endif  /* #ifndef HAVE_PPP_PLUGIN */
+
         /* Send a PPP frame */
         ret = sstp_stream_send(ctx->stream, tx, (sstp_complete_fn) 
                 ppp_send_complete, ctx, 1);
@@ -160,6 +288,9 @@ static status_t ppp_process_data(sstp_pppd_st *ctx)
         {
             return SSTP_INPROG;
         }
+
+        /* Record the number of bytes sent */
+        ppp_record_sent(ctx, tx->len);
     }
     
     /* Start over in an empty buffer */
@@ -185,7 +316,10 @@ static void sstp_pppd_recv(int fd, short event, sstp_pppd_st *ctx)
     rx->len += read(fd, rx->data + rx->len, rx->max - rx->len);
     if (rx->len <= 0)
     {
-        log_err("PPPd Socket Closed");
+        if (ctx->notify)
+        {
+            ctx->notify(ctx->arg, SSTP_PPP_DOWN);
+        }
         goto done;
     }
 
@@ -199,7 +333,7 @@ static void sstp_pppd_recv(int fd, short event, sstp_pppd_st *ctx)
 
     case SSTP_OKAY:
         /* Re-add the event to receive more */
-        event_add(&ctx->recv, NULL);
+        event_add(ctx->ev_recv, NULL);
         break;
 
     case SSTP_FAIL:
@@ -242,6 +376,9 @@ status_t sstp_pppd_send(sstp_pppd_st *ctx, const char *buf, int len)
         goto done;
     }
 
+    /* Record the number of bytes received */
+    ppp_record_recv(ctx, len);
+
     /* Write the data back to the pppd */
     ret = write(ctx->sock, frame, flen);
     if (ret != flen)
@@ -259,8 +396,8 @@ done:
 }
 
 
-status_t sstp_pppd_start(sstp_pppd_st *ctx, sstp_event_st *event, 
-        sstp_option_st *opts)
+status_t sstp_pppd_start(sstp_pppd_st *ctx, sstp_option_st *opts, 
+        const char *sockname)
 {
     status_t status  = SSTP_FAIL;
     status_t ret     = SSTP_FAIL;
@@ -284,10 +421,22 @@ status_t sstp_pppd_start(sstp_pppd_st *ctx, sstp_event_st *event,
         args[i++] = "/usr/sbin/pppd";
         args[i++] = sstp_task_ttydev(ctx->task);
         args[i++] = "38400";
-        args[i++] = "plugin";
-        args[i++] = "sstp-pppd-plugin.so";
-        args[i++] = "sstp-sock";
-        args[i++] = sstp_event_sockname(event);
+
+        /* If user supplied username and password (insecure) */
+        if (opts->have.password && opts->have.user)
+        {
+            args[i++] = "user";
+            args[i++] = opts->user;
+            args[i++] = "password";
+            args[i++] = opts->password;
+        }
+        else 
+        {
+            args[i++] = "plugin";
+            args[i++] = "sstp-pppd-plugin.so";
+            args[i++] = "sstp-sock";
+            args[i++] = sockname;
+        }
 
         /* Copy all the arguments to pppd */
         for (j = 0; j < opts->pppdargc; j++)
@@ -306,7 +455,8 @@ status_t sstp_pppd_start(sstp_pppd_st *ctx, sstp_event_st *event,
         }
 
         /* Get the socket to listen on */
-        ctx->sock = sstp_task_stdout(ctx->task);
+        ctx->sock    = sstp_task_stdout(ctx->task);
+        ctx->t_start = time(NULL);
     }
     else
     {
@@ -315,11 +465,11 @@ status_t sstp_pppd_start(sstp_pppd_st *ctx, sstp_event_st *event,
     }
 
     /* Add the event context */
-    event_set(&ctx->recv, ctx->sock, EV_READ, (event_fn) 
+    ctx->ev_recv = event_new(ctx->ev_base, ctx->sock, EV_READ, (event_fn) 
             sstp_pppd_recv, ctx);
 
     /* Add the recieve event */
-    event_add(&ctx->recv, NULL);
+    event_add(ctx->ev_recv, NULL);
 
     /* Success! */
     status = SSTP_OKAY;
@@ -330,7 +480,29 @@ done:
 }
 
 
-status_t sstp_pppd_create(sstp_pppd_st **ctx, sstp_stream_st *stream)
+status_t sstp_pppd_stop(sstp_pppd_st *ctx)
+{
+    /* Cleanup the task */
+    if (ctx->task)
+    {
+        /* Check if task is still running, then kill it */
+        if (sstp_task_alive(ctx->task))
+        {
+            sstp_task_stop(ctx->task);
+        }
+
+        /* Free the task */
+        sstp_task_destroy(ctx->task);
+        ctx->task  = NULL;
+        ctx->t_end = time(NULL);
+    }
+
+    return SSTP_FAIL;
+}
+
+
+status_t sstp_pppd_create(sstp_pppd_st **ctx, event_base_st *base,
+        sstp_stream_st *stream, sstp_pppd_fn notify_cb, void *arg)
 {
     status_t ret    = SSTP_FAIL;
     status_t status = SSTP_FAIL;
@@ -355,7 +527,9 @@ status_t sstp_pppd_create(sstp_pppd_st **ctx, sstp_stream_st *stream)
 
     /* Save a reference to the stream handle */
     (*ctx)->stream = stream;
-
+    (*ctx)->notify = notify_cb;
+    (*ctx)->arg    = arg;
+    (*ctx)->ev_base= base;
 
     /* Success */
     status = SSTP_OKAY;
@@ -387,11 +561,10 @@ void sstp_pppd_free(sstp_pppd_st *ctx)
             sstp_task_stop(ctx->task);
         }
 
-        /* Wait for the task to terminate */
-        sstp_task_wait(ctx->task, NULL, 0);
-
         /* Free resources */
         sstp_task_destroy(ctx->task);
+        ctx->task  = NULL;
+        ctx->t_end = time(NULL);
     }
 
     /* Dispose send buffers */
@@ -409,7 +582,11 @@ void sstp_pppd_free(sstp_pppd_st *ctx)
     }
 
     /* Dispose of receive event */
-    event_del(&ctx->recv);
+    if (ctx->ev_recv)
+    {
+        event_del(ctx->ev_recv);
+        event_free(ctx->ev_recv);
+    }
 
     /* Free pppd context */
     free(ctx);

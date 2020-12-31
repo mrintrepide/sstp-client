@@ -83,6 +83,8 @@ void sstp_usage_die(const char *prog, int code,
     printf("  --help                   Display this menu\n");
     printf("  --debug                  Enable debug mode\n");
     printf("  --nolaunchpppd           Don't start pppd, for use with pty option\n");
+    printf("  --user                   Username\n");
+    printf("  --password               Password\n");
     printf("  --version                Display the version information\n\n");
 
     /* Additional log usage */
@@ -151,6 +153,16 @@ static void sstp_parse_option(sstp_option_st *ctx, int argc, char **argv, int in
         ctx->enable |= SSTP_OPT_NOLAUNCH;
         break;
 
+    case 6: 
+        strncpy(ctx->password, optarg, sizeof(ctx->password));
+        ctx->have.password = 1;
+        break;
+
+    case 7:
+        strncpy(ctx->user, optarg, sizeof(ctx->user));
+        ctx->have.user = 1;
+        break;
+
     default:
         sstp_usage_die(argv[0], -1, "Unrecognized command line option");
         break;
@@ -171,6 +183,8 @@ int sstp_parse_argv(sstp_option_st *ctx, int argc, char **argv)
         { "help",           no_argument,       NULL,  0  },
         { "ipparam",        required_argument, NULL,  0  },
         { "nolaunchpppd",   no_argument,       NULL,  0  },
+        { "password",       required_argument, NULL,  0  },
+        { "user",           required_argument, NULL,  0  },
         { "version",        no_argument,       NULL, 'v' },
         { 0, 0, 0, 0 }
     };
@@ -181,7 +195,7 @@ int sstp_parse_argv(sstp_option_st *ctx, int argc, char **argv)
     while (1)
     {
         /* Use getopt to parse the command line */
-        char c = getopt_long(argc, argv, "", option_long, &option_index);
+        char c = getopt_long(argc, argv, "v", option_long, &option_index);
         if (c == -1)
         {
             break;

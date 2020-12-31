@@ -1,7 +1,11 @@
 sbin_PROGRAMS   = sstpc
 sstpc_CFLAGS	= -I$(top_srcdir)/include
-sstpc_LDADD	    = libsstp-log/libsstp_log.la libsstp-api/libsstp_api.la
-sstpc_SOURCES = \
+sstpc_LDADD	    =       \
+    libsstp-log/libsstp_log.la \
+    libsstp-api/libsstp_api.la \
+    libsstp-compat/libsstp_compat.la
+
+sstpc_SOURCES =         \
     sstp-client.c       \
     sstp-option.c       \
     sstp-stream.c       \
@@ -14,11 +18,13 @@ sstpc_SOURCES = \
     sstp-task.c         \
     sstp-event.c        \
     sstp-state.c        \
+    sstp-chap.c         \
     sstp-fcs.c
 
 noinst_HEADERS  =       \
     sstp-buff.h         \
     sstp-client.h       \
+    sstp-chap.h         \
     sstp-cmac.h         \
     sstp-event.h        \
     sstp-fcs.h          \

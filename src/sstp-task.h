@@ -83,7 +83,7 @@ int sstp_task_stdin(sstp_task_st *task);
 /*!
  * @brief Checks if a task is still running
  */
-status_t sstp_task_alive(sstp_task_st *task);
+int sstp_task_alive(sstp_task_st *task);
 
 
 /*! 

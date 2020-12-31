@@ -51,6 +51,7 @@ typedef enum
      SSTP_LOG_INFO  = 2,
      SSTP_LOG_DEBUG = 3,
      SSTP_LOG_TRACE = 4,
+     SSTP_LOG_DUMP  = 5,
 
 } sstp_level_t;
 

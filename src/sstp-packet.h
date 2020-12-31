@@ -88,6 +88,15 @@ typedef enum
 
 #define SSTP_ATTR_MAX   (_SSTP_ATTR_MAX - 1)
 
+/*! 
+ * @brief Help trace the packet
+ */
+#define sstp_pkt_trace(buf)     \
+    if (SSTP_LOG_TRACE <= sstp_log_level()) \
+    {                                       \
+        sstp_pkt_dump(buf, __FILE__, __LINE__);    \
+    }
+
 
 /*!
  * @brief The defined status attributes per specificiation
@@ -193,5 +202,8 @@ int sstp_attr_len(sstp_attr_st *attr);
  * @brief Return the string representation of the status attribute
  */ 
 const char *sstp_attr_status_str(int status);
+
+
+void sstp_pkt_dump(sstp_buff_st *buf, const char *file, int line);
 
 #endif /* #ifdef __SSTP_PACKET_H__ */

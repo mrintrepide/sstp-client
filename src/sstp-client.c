@@ -27,13 +27,17 @@
 #include <errno.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <signal.h>
 
 
 #include "sstp-private.h"
 #include "sstp-client.h"
 
+/*! Global context for the sstp-client */
+static sstp_client_st client;
 
-static void sstp_client_ipup(sstp_client_st *client, int ret)
+
+static void sstp_client_event_cb(sstp_client_st *client, int ret)
 {
     uint8_t *skey;
     uint8_t *rkey;
@@ -65,10 +69,66 @@ static void sstp_client_ipup(sstp_client_st *client, int ret)
 }
 
 
+static void sstp_client_pppd_cb(sstp_client_st *client, sstp_pppd_event_t ev)
+{
+    int ret = (-1);
+
+    switch (ev)
+    {
+    case SSTP_PPP_DOWN:
+	log_err("PPPd terminated");
+	//sstp_state_disconnect(client->state);
+	event_base_loopbreak(client->ev_base);
+        break;
+
+    case SSTP_PPP_UP:
+        log_info("PPP UP");
+        break;
+
+    case SSTP_PPP_AUTH:
+    {
+        uint8_t skey[16];
+        uint8_t rkey[16];
+
+        /* Get the password */
+        const char *password = (client->option.have.password) 
+                ? client->option.password 
+                : NULL;
+
+        /* Get the MPPE keys */
+        ret = sstp_chap_mppe_get(sstp_pppd_getchap(client->pppd), password, 
+                skey, rkey, 0); 
+        if (SSTP_FAIL == ret)
+        {
+            return;
+        }
+
+        /* Set the keys */
+        sstp_state_mppe_keys(client->state, skey, 16, rkey, 16);
+
+        /* Tell the state machine to connect */
+        ret = sstp_state_accept(client->state);
+        if (SSTP_FAIL == ret)
+        {
+            sstp_die("Negotiation with server failed", -1);
+        }
+
+        break;
+    }
+
+    default:
+        
+        break;
+    }
+
+    return;
+}
+
+
 /*!
  * @brief Called when the state machine transitions
  */
-static void sstp_client_notify(sstp_client_st *client, sstp_state_t event)
+static void sstp_client_state_cb(sstp_client_st *client, sstp_state_t event)
 {
     int ret = 0;
 
@@ -77,22 +137,16 @@ static void sstp_client_notify(sstp_client_st *client, sstp_state_t event)
     case SSTP_CALL_CONNECT:
 
         /* Create the PPP context */
-        ret = sstp_pppd_create(&client->pppd, client->stream);
+        ret = sstp_pppd_create(&client->pppd, client->ev_base, client->stream, 
+                (sstp_pppd_fn) sstp_client_pppd_cb, client);
         if (SSTP_OKAY != ret)
         {
             sstp_die("Could not initalize PPP daemon", -1);
         }
 
-        /* Create the event notification callback */
-        ret = sstp_event_create(&client->event, &client->option, 
-                (sstp_event_fn) sstp_client_ipup, client);
-        if (SSTP_OKAY != ret)
-        {
-            sstp_die("Could not setup ip-up notification", -1);
-        }
-        
         /* Start the pppd daemon */
-        ret = sstp_pppd_start(client->pppd, client->event, &client->option);
+        ret = sstp_pppd_start(client->pppd, &client->option, 
+                sstp_event_sockname(client->event));
         if (SSTP_OKAY != ret)
         {
             sstp_die("Could not start PPP daemon", -1);
@@ -104,7 +158,7 @@ static void sstp_client_notify(sstp_client_st *client, sstp_state_t event)
 
         log_info("Started PPP Link Negotiation");
         break;
-
+    
     case SSTP_CALL_ESTABLISHED:
         log_info("Connection Established");
         break;
@@ -151,7 +205,7 @@ static void sstp_client_http_done(sstp_client_st *client, int status)
 
     /* Now we need to start the state-machine */
     status = sstp_state_create(&client->state, client->stream, (sstp_state_change_fn)
-            sstp_client_notify, client, SSTP_MODE_CLIENT);
+            sstp_client_state_cb, client, SSTP_MODE_CLIENT);
     if (SSTP_OKAY != status)
     {
         sstp_die("Could not create state machine", -1);
@@ -169,43 +223,18 @@ static void sstp_client_http_done(sstp_client_st *client, int status)
 /*!
  * @brief Called upon connect complete w/result
  */
-static void sstp_client_connected(int sock, short evtype, 
-        sstp_client_st *client)
+static void sstp_client_connected(sstp_stream_st *stream, sstp_buff_st *buf, 
+        sstp_client_st *client, status_t status)
 {
-    SSL *ssl = NULL;
     int ret  = 0;
 
-    if (EV_TIMEOUT & evtype)
+    if (SSTP_CONNECTED != status)
     {
         sstp_die("Could not complete connect to the client", -1);
     }
 
     /* Success! */
     log_info("Connected to %s", client->host.name);
-
-    /* Associate the streams */
-    ssl = SSL_new(client->ssl_ctx);
-    if (ssl == NULL)
-    {
-        sstp_die("Could not create SSL session", -1);
-    }
-
-    /* Associate socket with */
-    ret = SSL_set_fd(ssl, sock);
-    if (ret < 0)
-    {
-        sstp_die("Could not set SSL socket", -1);
-    }
-
-    /* Configure Client mode SSL */
-    SSL_set_connect_state(ssl);
-
-    /* Create the I/O streams */
-    ret = sstp_stream_create(&client->stream, ssl);
-    if (SSTP_OKAY != ret)
-    {
-        sstp_die("Could not setup SSL streams", -1);
-    }
 
     /* Create the HTTP handshake context */
     ret = sstp_http_create(&client->http, client->host.name, (sstp_http_done_fn) 
@@ -232,65 +261,32 @@ static void sstp_client_connected(int sock, short evtype,
 static status_t sstp_client_connect(sstp_client_st *client, 
         struct sockaddr *addr, int alen)
 {
-    int ret  = (-1);
-    int sock = (-1);
-    struct timeval timeout = { 10, 0 };
+    status_t ret;
 
-    /* Create the socket */
-    sock = socket(PF_INET, SOCK_STREAM, 0);
-    if (0 > sock)
-    {          
-        log_err("Could not create socket");
+    /* Create the I/O streams */
+    ret = sstp_stream_create(&client->stream, client->ev_base, client->ssl_ctx);
+    if (SSTP_OKAY != ret)
+    {
+        log_err("Could not setup SSL streams");
         goto done;
     }
 
-    /* Set socket non-blocking mode */
-    ret = sstp_set_nonbl(sock, 1);
-    if (SSTP_OKAY != ret)
+    /* Have the stream connect */
+    ret = sstp_stream_connect(client->stream, addr, alen, (sstp_complete_fn) 
+            sstp_client_connected, client, 10);
+    if (SSTP_INPROG != ret && 
+        SSTP_OKAY   != ret)
     {
-        log_err("Unable to set non-blocking operation");
+        log_err("Could not connect to the server");
         goto done;
-    }   
-    
-    /* Set send buffer size */
-    ret = sstp_set_sndbuf(sock, 32768);
-    if (SSTP_OKAY != ret)
-    {
-        log_warn("Unable to set send buffer size");
     }
 
-    /* Connect to the server (non-blocking) */
-    ret = connect(sock, addr, alen);
-    if (ret == -1)
-    {
-        /* If we are not blocking b/c of connection in progress */
-        if (errno != EINPROGRESS)
-        {
-            log_err("Connection failed (%d)", errno);
-            goto done;
-        }
-
-        /* Configure the event on connect */
-        event_set(&client->conn, sock, EV_WRITE | EV_TIMEOUT,
-                (event_fn) sstp_client_connected, client);
-
-        /* Add the event to the event loop */
-        event_add(&client->conn, &timeout);
-        return SSTP_INPROG;
-    }
-
-    /* Success */
-    return SSTP_OKAY;
+    /* Success! */
+    ret = SSTP_OKAY;
 
 done:
 
-    /* Cleanup */
-    if (sock >= 0)
-    {
-        close(sock);
-    }
-    
-    return SSTP_FAIL;
+    return ret;
 }
 
 
@@ -416,6 +412,14 @@ static status_t sstp_client_init(sstp_client_st *client, sstp_option_st *opts)
     int retval = SSTP_FAIL;
     int status = 0;
 
+    /* Initialize the event library */
+    client->ev_base = event_base_new();
+    if (!client->ev_base)
+    {
+        log_err("Could not initialize event base");
+        goto done;
+    }
+
     /* Initialize the SSL context, cert store, etc */
     status = sstp_init_ssl(client, opts);
     if (SSTP_OKAY != status)
@@ -449,12 +453,14 @@ done:
  */
 static void sstp_client_free(sstp_client_st *client)
 {
+    /* Destory the HTTPS stream */
     if (client->stream)
     {
         sstp_stream_destroy(client->stream);
         client->stream = NULL;
     }
 
+    /* Shutdown the SSL context */
     if (client->ssl_ctx)
     {
         SSL_CTX_free(client->ssl_ctx);
@@ -474,6 +480,57 @@ static void sstp_client_free(sstp_client_st *client)
         sstp_event_free(client->event);
         client->event = NULL;
     }
+
+    /* Free the event base */
+    event_base_free(client->ev_base);
+}
+
+
+void sstp_signal_cb(int signal)
+{
+    log_err("Terminating on %s (%d)", 
+            strsignal(signal), signal);
+
+    event_base_loopbreak(client.ev_base);
+}
+
+
+status_t sstp_signal_init(void)
+{
+    status_t status = SSTP_FAIL;
+    struct sigaction act;
+    int ret = -1;
+
+    memset(&act, 0, sizeof(act));
+    sigemptyset(&act.sa_mask);
+    act.sa_handler = sstp_signal_cb;
+
+    /* Handle Ctrl+C on keyboard */
+    ret = sigaction(SIGINT, &act, NULL);
+    if (ret)
+    {   
+        goto done;
+    }
+
+    ret = sigaction(SIGHUP, &act, NULL);
+    if (ret)
+    {   
+        goto done;
+    }
+
+    /* Handle program termination */
+    ret = sigaction(SIGTERM, &act, NULL);
+    if (ret)
+    {
+        goto done;
+    }
+
+    /* Success */
+    status = SSTP_OKAY;
+
+done:
+    
+    return status;
 }
 
 
@@ -482,21 +539,23 @@ static void sstp_client_free(sstp_client_st *client)
  */
 int main(int argc, char *argv[])
 {
-    sstp_client_st client;
     sstp_option_st option;
     int ret = 0;
 
     /* Reset the memory */
     memset(&client, 0, sizeof(client));
 
-    /* Initialize the event library */
-    event_init();
-
     /* Perform initialization */
     ret = sstp_log_init_argv(&argc, argv);
     if (SSTP_OKAY != ret)
     {
         sstp_die("Could not initialize logging", -1);
+    }
+
+    ret = sstp_signal_init();
+    if (SSTP_OKAY != ret)
+    {
+        sstp_die("Could not initialize signal handling", -1);
     }
     
     /* Parse the arguments */
@@ -506,11 +565,27 @@ int main(int argc, char *argv[])
         sstp_die("Could not parse input arguments", -1);
     }
 
+#ifndef HAVE_PPP_PLUGIN
+    /* In non-plugin mode, username and password must be specified */
+    if (!option.have.password || !option.have.user)
+    {
+        sstp_die("The password and username must be specified", -1);
+    }
+#endif /* #ifndef HAVE_PPP_PLUGIN */
+
     /* Initialize the client */
     ret = sstp_client_init(&client, &option);
     if (SSTP_OKAY != ret)
     {
         sstp_die("Could not initialize the client", -1);
+    }
+
+    /* Create the event notification callback */
+    ret = sstp_event_create(&client.event, &client.option, client.ev_base,
+        (sstp_event_fn) sstp_client_event_cb, &client);
+    if (SSTP_OKAY != ret)
+    {
+        sstp_die("Could not setup notification", -1);
     }
 
     /* Perform DNS lookup of the server */
@@ -529,10 +604,28 @@ int main(int argc, char *argv[])
     }
     
     /* Wait for the connect to finish and then continue */
-    ret = event_dispatch();
+    ret = event_base_dispatch(client.ev_base);
     if (ret != 0)
     {
         sstp_die("The event loop terminated unsuccessfully", -1);
+    }
+
+    /* Record the session info for the curious peer */
+    if (client.pppd)
+    {
+        sstp_session_st detail;
+        char buf1[32];
+        char buf2[32];
+
+        /* Try to signal stop first */
+        sstp_pppd_stop(client.pppd);
+
+        sstp_pppd_session_details(client.pppd, &detail);
+        log_info("SSTP session was established for %s",
+                sstp_norm_time(detail.established, buf1, sizeof(buf1)));
+        log_info("Received %s, sent %s", 
+                sstp_norm_data(detail.rx_bytes, buf1, sizeof(buf1)),
+                sstp_norm_data(detail.tx_bytes, buf2, sizeof(buf2)));
     }
 
     /* Release allocated resources */

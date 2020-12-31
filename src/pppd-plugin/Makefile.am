@@ -1,4 +1,4 @@
-if WITH_PPP
+if WITH_PPP_PLUGIN
 pppd_plugindir = $(PPPD_PLUGIN_DIR)
 
 pppd_plugin_LTLIBRARIES      = sstp-pppd-plugin.la

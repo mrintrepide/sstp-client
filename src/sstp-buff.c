@@ -158,6 +158,7 @@ status_t sstp_buff_create(sstp_buff_st **buf, int size)
     /* Configure the buffer */
     ctx->max = size;
     ctx->len = 0;
+    ctx->off = 0;
     *buf = ctx;
 
     /* Success! */

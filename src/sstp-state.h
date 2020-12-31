@@ -102,6 +102,12 @@ status_t sstp_state_accept(sstp_state_st *ctx);
 
 
 /*!
+ * @brief Sets the CHAP context
+ */
+void sstp_state_chap_challenge(sstp_state_st *ctx, sstp_chap_st *chap);
+
+
+/*!
  * @brief Return reason for why call was aborted
  */
 const char *sstp_state_reason(sstp_state_st *ctx);

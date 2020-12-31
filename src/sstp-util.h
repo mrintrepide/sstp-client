@@ -71,6 +71,18 @@ status_t sstp_url_split(sstp_url_st **url, const char *path);
 
 
 /*!
+ * @brief Normalize into Kb, Mb, Gb, or Tb
+ */
+const char *sstp_norm_data(unsigned long long count, char *buf, int len);
+
+
+/*!
+ * @brief Normilize into hour, min or sec.
+ */
+const char *sstp_norm_time(unsigned long t, char *buf, int len);
+
+
+/*!
  * @brief Free the url structure
  */ 
 void sstp_url_free(sstp_url_st *url);

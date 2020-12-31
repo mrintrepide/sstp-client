@@ -62,7 +62,7 @@ struct sstp_event
     sstp_api_attr_st *skey;
 
     /*! Event listener */
-    event_st event;
+    event_st *ev_event;
 };
 
 
@@ -119,7 +119,7 @@ static int sstp_event_auth(sstp_event_st *ctx, int sock,
     ctx->event_cb(ctx->arg, SSTP_OKAY);
 
     /* Prepare the ACK */
-    sstp_api_msg_new((char*)msg, SSTP_API_MSG_ACK);
+    sstp_api_msg_new((unsigned char*)msg, SSTP_API_MSG_ACK);
 
     /* ACK the message */
     ret = send(sock, msg, sizeof(*msg), 0);
@@ -140,7 +140,7 @@ done:
 static int sstp_event_addr(sstp_event_st *ctx, int sock, 
         sstp_api_msg_st *msg)
 {
-    char buff[255];
+    unsigned char buff[255];
     int ret    = SSTP_OKAY;
     int retval = SSTP_FAIL;
     sstp_client_st *client = (sstp_client_st*) ctx->arg;
@@ -167,9 +167,6 @@ static int sstp_event_addr(sstp_event_st *ctx, int sock,
 
     /* Success */
     retval = SSTP_OKAY;
-
-done:
-
     return retval;
 }
 
@@ -178,11 +175,9 @@ static void sstp_event_accept(int fd, short event, sstp_event_st *ctx)
 {
     int sock = (-1);
     int len  = ( 0);
-    int ret  = ( 0);
 
     sstp_api_msg_st msg;
     sstp_api_msg_t  type;
-    status_t status = SSTP_FAIL;
 
     /* Accept the incoming socket */
     sock = accept(fd, NULL, NULL);
@@ -234,7 +229,7 @@ done:
         close(sock);
     }
 
-    event_add(&ctx->event, NULL);
+    event_add(ctx->ev_event, NULL);
 }
 
 
@@ -261,8 +256,8 @@ const char *sstp_event_sockname(sstp_event_st *ctx)
 }
 
 
-status_t sstp_event_create(sstp_event_st **ctx, sstp_option_st *opts,
-        sstp_event_fn event_cb, void *arg)
+status_t sstp_event_create(sstp_event_st **ctx, sstp_option_st *opts, 
+    event_base_st *base, sstp_event_fn event_cb, void *arg)
 {
     struct sockaddr_un addr;
     status_t status = SSTP_FAIL;
@@ -312,7 +307,7 @@ status_t sstp_event_create(sstp_event_st **ctx, sstp_option_st *opts,
     }
 
     /* Notify in the logs */
-    log_info("Waiting for sstp-plugin to send mppe keys on: %s",
+    log_info("Waiting for sstp-plugin to connect on: %s",
             addr.sun_path);
 
     /* Configure our local context */
@@ -322,11 +317,11 @@ status_t sstp_event_create(sstp_event_st **ctx, sstp_option_st *opts,
     strncpy(obj->sockname, addr.sun_path, sizeof(obj->sockname));
 
     /* Configure a event object for accept socket */
-    event_set(&obj->event, sock, EV_READ, (event_fn) 
+    obj->ev_event = event_new(base, sock, EV_READ, (event_fn) 
             sstp_event_accept, obj);
 
     /* Add a read event for accept */
-    event_add(&obj->event, NULL);
+    event_add(obj->ev_event, NULL);
 
     /* Save the return value */
     *ctx = obj;
@@ -354,7 +349,8 @@ void sstp_event_free(sstp_event_st *ctx)
     }
 
     /* Remove event listener */
-    event_del(&ctx->event);
+    event_del(ctx->ev_event);
+    event_free(ctx->ev_event);
 
     /* Free the context */
     free(ctx);

@@ -204,15 +204,15 @@ int sstp_task_stop(sstp_task_st *task)
 }
 
 
-status_t sstp_task_alive(sstp_task_st *task)
+int sstp_task_alive(sstp_task_st *task)
 {
     int ret = kill(task->pid, 0);
     if (ret == -1 && errno == ESRCH)
     {   
-        return SSTP_FAIL;
+        return 0;
     }
 
-    return SSTP_OKAY;
+    return 1;
 }
 
 
@@ -288,7 +288,7 @@ void sstp_task_destroy(sstp_task_st *task)
 
 int main(void)
 {
-    char *args[10];
+    const char *args[10];
     sstp_task_st *task;
     int i = 0;
     int ret = 0;
@@ -299,7 +299,7 @@ int main(void)
     args[i++] = NULL;
 
     /* Create the task */
-    ret = sstp_task_init(&task, SSTP_TASK_USEPIPE);
+    ret = sstp_task_new(&task, SSTP_TASK_USEPIPE);
     if (SSTP_OKAY != ret)
     {
         printf("Could not create task\n");

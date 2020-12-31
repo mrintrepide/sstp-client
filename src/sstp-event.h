@@ -39,7 +39,7 @@ typedef void (*sstp_event_fn)(void *ctx, int status);
  * @brief Create an event to listen for callback
  */
 status_t sstp_event_create(sstp_event_st **ctx, sstp_option_st *opts,
-        sstp_event_fn event_cb, void *arg);
+        event_base_st *base, sstp_event_fn event_cb, void *arg);
 
 
 /*! 

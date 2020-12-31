@@ -29,7 +29,7 @@
 
 
 SSTP_API 
-sstp_api_msg_st *sstp_api_msg_new(char *buf, sstp_api_msg_t type)
+sstp_api_msg_st *sstp_api_msg_new(unsigned char *buf, sstp_api_msg_t type)
 {
     sstp_api_msg_st *msg = (sstp_api_msg_st*) buf;
     msg->msg_magic = SSTP_API_MSG_MAGIC;

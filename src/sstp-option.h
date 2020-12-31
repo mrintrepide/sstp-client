@@ -47,6 +47,8 @@ typedef struct
         int ca_path : 1;
         int ca_cert : 1;
         int ipparam : 1;
+        int user    : 1;
+        int password: 1;
 
     } have;
 
@@ -61,6 +63,12 @@ typedef struct
 
     /*! Unique connection parameter */
     char ipparam[SSTP_PATH_MAX];
+
+    /*! Password */
+    char password[SSTP_PATH_MAX];
+
+    /*! Username */
+    char user[SSTP_PATH_MAX];
 
     /*! The number of arguments to pppd */
     int pppdargc;

@@ -69,6 +69,7 @@ struct sstp_http
     int mode;
 };
 
+#if 0
 /*!
  * @brief Sent by the server in response to a client hello message
  */
@@ -94,7 +95,7 @@ static void sstp_http_recv_hello(sstp_http_st *http)
 {
     return;
 }
-
+#endif
 
 status_t sstp_http_create(sstp_http_st **http, const char *server, 
     sstp_http_done_fn done_cb, void *uarg, int mode)

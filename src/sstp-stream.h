@@ -133,7 +133,8 @@ status_t sstp_stream_connect(sstp_stream_st *client, struct sockaddr *addr,
 /*!
  * @brief Create the client
  */
-status_t sstp_stream_create(sstp_stream_st **client, SSL *ssl);
+status_t sstp_stream_create(sstp_stream_st **client, event_base_st *base, 
+        SSL_CTX *ssl);
 
 
 /*!

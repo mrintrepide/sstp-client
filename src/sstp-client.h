@@ -79,8 +79,8 @@ typedef struct
     /*! The SSL context */
     SSL_CTX *ssl_ctx;
 
-    /*! The global event */
-    event_st conn;
+    /*! The event base */
+    event_base_st *ev_base;
 
 } sstp_client_st;
 

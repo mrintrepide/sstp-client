@@ -384,3 +384,102 @@ const char *sstp_attr_status_str(int status)
 }
 
 
+void sstp_pkt_dump(sstp_buff_st *buf, const char *file, int line)
+{
+    sstp_pkt_st *pkt   = NULL;
+    sstp_ctrl_st *ctrl = NULL;
+    int type  = 0;
+    int alen  = 0;
+    int index = 0;
+    int length= 0;
+    int i = 0;
+
+    static const char *sstp_msg_type[] =
+    {
+        NULL,
+        "CONNECT REQUEST",
+        "CONNECT ACK",
+        "CONNECT NAK",
+        "CONNECTED",
+        "ABORT",
+        "DISCONNECT",
+        "DISCONNECT ACK",
+        "ECHO REQUEST",
+        "ECHO REPLY",
+    };
+
+    static const char *sstp_attr_type[] = 
+    {
+        "NO ERROR",
+        "ENCAP PROTO",
+        "STATUS INFO",
+        "CRYPTO BIND",
+        "CRYPTO BIND REQ"
+    };
+
+    char hex[255] = {};
+
+    pkt    = (sstp_pkt_st*) sstp_buff_data(buf, index);
+    index += (sizeof(sstp_pkt_st));
+
+    /* Packet Type / Length */
+    sstp_log_msg(SSTP_LOG_TRACE, file, line, "SSTP %s PKT(%d) ", 
+        (SSTP_MSG_FLAG_CTRL & pkt->flags) ? "CRTL" : "DATA", 
+        (ntohs(pkt->length)));
+
+    /* Handle control packets */
+    if (SSTP_MSG_FLAG_CTRL & pkt->flags)
+    {
+        ctrl   = (sstp_ctrl_st*) sstp_buff_data(buf, index);
+        index += (sizeof(sstp_ctrl_st));
+        type   = (ntohs(ctrl->type));
+        alen   = (ntohs(ctrl->nattr));
+
+        /* Control Type, num attributes */
+        sstp_log_msg(SSTP_LOG_TRACE, file, line, "  TYPE(%d): %s, ATTR(%d):",
+            type, sstp_msg_type[type], alen);
+
+        while (alen--)
+        {
+            sstp_attr_st *attr = (sstp_attr_st*) 
+                    sstp_buff_data(buf, index);
+
+            if (SSTP_ATTR_MAX < attr->type)
+            {
+                return;
+            }
+
+            sstp_log_msg(SSTP_LOG_TRACE, file, line, "    %s(%d): %d",
+                sstp_attr_type[attr->type], attr->type,
+                ntohs(attr->length));
+            index = ntohs(attr->length);
+        }
+    }
+
+    /* Only if dump was specified */
+    if (SSTP_LOG_DUMP > sstp_log_level())
+    {
+        return;
+    }
+
+    /* Dump the message */
+    length = ntohs(pkt->length);
+    for (index = 0; index < length; index += 16)
+    {
+        int offset = 0;
+        for (i = 0; i < 16 && (index+i) < length; i++)
+        {
+            int len = sprintf(&hex[offset], "0x%02x ", (buf->data[index+i]) & 0xFF);
+            if (len < 0 || len > (sizeof(hex)-offset))
+            {
+                return;
+            }
+
+            offset += len;
+        }
+
+        sstp_log_msg(SSTP_LOG_TRACE, file, line, "  %s", hex);
+    }
+}
+
+
