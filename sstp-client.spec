@@ -2,7 +2,7 @@
 %define event_version 2.0.10
 
 Name:		sstp-client
-Version:	1.0.10
+Version:	1.0.11
 Release:	1%{?dist}
 Summary:	Secure Socket Tunneling Protocol (SSTP) Client
 Group:		Applications/Internet
@@ -89,6 +89,10 @@ rm -rf /var/run/sstpc
 /usr/include/sstp-client/sstp-api.h
 
 %changelog
+* Fri May 29 2015 Eivind Naess <eivnaes@yahoo.com> - 1.0.11-1
+  * Added option for TLS-EXT. Thanks to Zheng Shao.
+  * Added compilation support for upcoming OpenSSL 1.1.0 release.
+
 * Fri May 29 2015 Eivind Naess <eivnaes@yahoo.com> - 1.0.10-1
   * Fixed a few bugs related to MicroTik routers and HTTP Proxy
 

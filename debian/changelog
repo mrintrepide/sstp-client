@@ -1,3 +1,29 @@
+sstp-client (1.0.11-0ubuntu1) xenial; urgency=low
+
+  * Added support for OpenSSL 1.1.0
+  * Added TLS-EXT options
+
+ -- Eivind Naess <eivnaes@yahoo.com>  Sat, 23 Apr 2015 09:00:00 -0800
+sstp-client (1.0.10-0ubuntu6) xenial; urgency=low
+
+  * Build scripts update
+
+ -- Eivind Naess <eivnaes@yahoo.com>  Sat, 23 Apr 2015 09:00:00 -0800
+sstp-client (1.0.10-0ubuntu5) xenial; urgency=low
+
+  * Remove automake files, edits to debian scripts, and rebuild for Xenial Xerus
+
+ -- Eivind Naess <eivnaes@yahoo.com>  Sat, 23 Apr 2015 08:00:00 -0800
+sstp-client (1.0.10-0ubuntu4) wily; urgency=low
+
+  * Update to automake 1.15, and rebuild for Wily Werewolf
+
+ -- Eivind Naess <eivnaes@yahoo.com>  Sat, 24 Oct 2015 08:00:00 -0800
+sstp-client (1.0.10-0ubuntu3) vivid; urgency=low
+
+  * Removed the hardening-wrapper include to get build going.
+
+ -- Eivind Naess <eivnaes@yahoo.com>  Sat, 23 May 2015 08:00:00 -0800
 sstp-client (1.0.10-0ubuntu2) vivid; urgency=low
 
   * Fixed the HTTP Proxy connection failing

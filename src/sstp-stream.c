@@ -44,11 +44,18 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/socket.h>
+#include <string.h>
 #include <unistd.h>
 #include <openssl/ssl.h>
 
 #include "sstp-private.h"
 
+// HOST_NAME_MAX is recommended by POSIX, but not required.
+// FreeBSD and OSX (as of 10.9) are known to not define it.
+// 255 is generally the safe value
+#ifndef HOST_NAME_MAX
+#define HOST_NAME_MAX 255
+#endif
 
 /*!
  * @brief A asynchronous send or recv channel object
@@ -116,6 +123,9 @@ struct sstp_stream
 
     /*< The list of free operations */
     sstp_operation_st *cache;
+
+    /*< Host name */
+    char name[HOST_NAME_MAX+1];
 };
 
 
@@ -730,6 +740,13 @@ static status_t sstp_stream_setup(sstp_stream_st *stream)
         goto done;
     }   
 
+    if (strnlen(stream->name, HOST_NAME_MAX) > 0 && \
+            !SSL_set_tlsext_host_name(stream->ssl, stream->name))
+    {
+        log_err("Unable to set TLS hostname extension.");
+        goto done;
+    }
+
     /* Set Client Mode (connect) */
     SSL_set_connect_state(stream->ssl);
 
@@ -929,7 +946,7 @@ done:
 
 
 status_t sstp_stream_create(sstp_stream_st **stream, event_base_st *base, 
-        SSL_CTX *ssl)
+        SSL_CTX *ssl, const char* name)
 {
     /* Create a new stream */
     sstp_stream_st *stream_= calloc(1, sizeof(sstp_stream_st));
@@ -944,6 +961,11 @@ status_t sstp_stream_create(sstp_stream_st **stream, event_base_st *base,
     stream_->ev_send = event_new(base, -1, 0, NULL, NULL);
     stream_->ssl_ctx = ssl;
     *stream = stream_;
+
+    if (name)
+    {
+        strncpy(stream_->name, name, sizeof(stream_->name));
+    }
 
     /* Success */
     return SSTP_OKAY;

@@ -6,7 +6,7 @@ Primary Author of this package:
 
 Patches and bug-fixes by:
 - Adding route to VPN server, Dmitriy Belokurov.
-
+- Adding TLS-EXT option, Zheng Shaop.
 
 Third-Party Resources:
   Nick Mathewson and Niels Provos for libevent. <http://monkey.org/~provos/libevent/>

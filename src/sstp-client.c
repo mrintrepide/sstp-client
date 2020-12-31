@@ -29,6 +29,7 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <signal.h>
+#include <string.h>
 
 
 #include "sstp-private.h"
@@ -301,8 +302,18 @@ static void sstp_client_proxy_done(sstp_client_st *client, int status)
         sstp_stream_destroy(client->stream);
 
         /* Create the SSL I/O streams */
-        ret = sstp_stream_create(&client->stream, client->ev_base, 
-                client->ssl_ctx);
+        if (SSTP_OPT_TLSEXT & client->option.enable)
+        {
+            log_info("TLS hostname extension is enabled");
+            ret = sstp_stream_create(&client->stream, client->ev_base,
+                    client->ssl_ctx, client->host.name);
+        }
+        else
+        {
+            log_info("TLS hostname extension is disabled");
+            ret = sstp_stream_create(&client->stream, client->ev_base,
+                    client->ssl_ctx, NULL);
+        }
         if (SSTP_OKAY != ret)
         {
             sstp_die("Could not create I/O stream", -1);
@@ -405,7 +416,17 @@ static status_t sstp_client_connect(sstp_client_st *client,
     status_t ret = SSTP_FAIL;
 
     /* Create the I/O streams */
-    ret = sstp_stream_create(&client->stream, client->ev_base, client->ssl_ctx);
+    if (SSTP_OPT_TLSEXT & client->option.enable)
+    {
+        log_info("TLS hostname extension is enabled");
+        ret = sstp_stream_create(&client->stream, client->ev_base, client->ssl_ctx, client->host.name);
+    }
+    else
+    {
+        log_info("TLS hostname extension is disabled");
+        ret = sstp_stream_create(&client->stream, client->ev_base, client->ssl_ctx, NULL);
+    }
+
     if (SSTP_OKAY != ret)
     {
         log_err("Could not setup SSL streams");

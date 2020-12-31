@@ -1,6 +1,6 @@
 AC_PREREQ([2.65])
 AC_INIT([sstp-client], 
-        [1.0.10],
+        [1.0.11],
         [http://sourceforge.net/projects/sstp-client])
 
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
@@ -32,15 +32,15 @@ AS_CASE([$with_libevent],
             [AC_MSG_ERROR([Required library libevent not found])])],
     ["*"],[AC_MSG_ERROR([Unknown version of libevent specified])])
 
-CFLAGS="$CFLAGS $LIBEVENT_CFLAGS"
-LDFLAGS="$LDFLAGS $LIBEVENT_LIBS"
+CFLAGS="$LIBEVENT_CFLAGS $CFLAGS"
+LDFLAGS="$LIBEVENT_LIBS $LDFLAGS"
 
 # Check for OpenSSL
 AX_CHECK_OPENSSL([], 
     [AC_MSG_ERROR([OpenSSL not found Hint: apt-get install libssl-dev])])
 LIBS="$LIBS $OPENSSL_LIBS"
-CFLAGS="$CFLAGS $OPENSSL_INCLUDES"
-LDFLAGS="$LDFLAGS $OPENSSL_LDFLAGS"
+CFLAGS="$OPENSSL_INCLUDES $CFLAGS"
+LDFLAGS="$OPENSSL_LDFLAGS $LDFLAGS"
 
 
 # Check for openpty
@@ -92,7 +92,7 @@ AC_ARG_WITH([pppd-plugin-dir],
 if test -n "$with_pppd_plugin_dir" ; then
     PPPD_PLUGIN_DIR="$with_pppd_plugin_dir"
 else
-    PPPD_PLUGIN_DIR="${libdir}/pppd/2.4.6"
+    PPPD_PLUGIN_DIR="${libdir}/pppd/2.4.7"
 fi
 AC_SUBST(PPPD_PLUGIN_DIR)
 

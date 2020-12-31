@@ -22,6 +22,7 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include <config.h>
+#include <string.h>
 #include "sstp-private.h"
 
 /*!
@@ -350,6 +351,7 @@ status_t sstp_http_handshake(sstp_http_st *http, sstp_stream_st *stream)
  * @brief Perform Basic authentication for now. Support digest in the 
  *  future.
  */
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 static const char *sstp_proxy_basicauth(const char *user, 
         const char *pass, char *buf, int size)
 {
@@ -374,6 +376,33 @@ static const char *sstp_proxy_basicauth(const char *user,
     snprintf(buf, size, "Basic %s", out);
     return (buf);
 }
+#else
+static const char *sstp_proxy_basicauth(const char *user, 
+        const char *pass, char *buf, int size)
+{
+    EVP_ENCODE_CTX *ctx = EVP_ENCODE_CTX_new();
+    int tot = 0;
+    int len = 0;
+    unsigned char out[255];
+
+    EVP_EncodeInit  (ctx);
+    EVP_EncodeUpdate(ctx, out + tot, &len, 
+		(unsigned char*) user, strlen(user));
+    tot += len;
+    EVP_EncodeUpdate(ctx, out + tot, &len, 
+		(unsigned char*) ":", 1);
+    tot += len;
+    EVP_EncodeUpdate(ctx, out + tot, &len, 
+		(unsigned char*) pass, strlen(pass));
+    tot += len;
+    EVP_EncodeFinal (ctx, out + tot, &len);
+    tot += len;
+    EVP_ENCODE_CTX_free(ctx);
+
+    snprintf(buf, size, "Basic %s", out);
+    return (buf);
+}
+#endif
 
 
 /*!

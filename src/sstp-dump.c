@@ -25,6 +25,7 @@
 #include <arpa/inet.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "sstp-ppp.h"
 #include "sstp-private.h"

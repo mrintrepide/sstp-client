@@ -5,6 +5,7 @@ Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 Uploaders: Eivind Naess <eivnaes@yahoo.com>
 Build-Depends:
  debhelper (>= 9),
+ dh-autoreconf,
  ppp-dev,
  libevent-dev,
  libssl-dev

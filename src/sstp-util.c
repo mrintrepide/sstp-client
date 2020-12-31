@@ -379,6 +379,9 @@ int sstp_sandbox(const char *path, const char *user, const char *group)
     /* Set the group id (before setting user id) */
     if (gid >= 0 && gid != getgid())
     {
+        /* Call setgroups prior to dropping privileges (setuid,setgid) */
+        setgroups(0, NULL);
+
         if (setgid(gid) != 0)
         {
             log_warn("Could not set process group id, %s (%d)", 
