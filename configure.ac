@@ -1,6 +1,6 @@
 AC_PREREQ([2.67])
 AC_INIT([sstp-client], 
-        [1.0.2], 
+        [1.0.3],
         [http://sourceforge.net/projects/sstp-client])
 
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
@@ -150,6 +150,10 @@ AC_OUTPUT
 echo "
 $PACKAGE_NAME version $PACKAGE_VERSION
    Prefix.........: $prefix
+   Runtime Dir....: $SSTP_RUNTIME_DIR
+   PPP Plugin Dir.: $PPPD_PLUGIN_DIR
+   User:..........: $enable_user
+   Group:.........: $enable_group
    Using OpenSSL..: $OPENSSL_INCLUDES $OPENSSL_LDFLAGS $OPENSSL_LIBS
    C Compiler.....: $CC $CFLAGS
    Using Event....: $LIBEVENT_CFLAGS $LIBEVENT_LIBS

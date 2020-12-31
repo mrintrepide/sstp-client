@@ -72,6 +72,9 @@ struct sstp_pppd
     /*< Enable authentication check */
     int auth_check;
 
+    /*< Delete the file */
+    int del_file;
+
     /*< The temporary file name */
     char tmpfile[64];
 
@@ -162,8 +165,11 @@ sstp_chap_st *sstp_pppd_getchap(sstp_pppd_st *ctx)
 
 void sstp_pppd_session_details(sstp_pppd_st *ctx, sstp_session_st *sess)
 {
-    sess->established = ((ctx->t_end == 0) ? time(NULL) : ctx->t_end) - 
-        ctx->t_start;
+    unsigned long t_end = ((ctx->t_end == 0) 
+        ? time(NULL) 
+        : ctx->t_end);
+
+    sess->established = t_end - ctx->t_start;
     sess->rx_bytes = ctx->recv_bytes;
     sess->tx_bytes = ctx->sent_bytes;
 }
@@ -217,6 +223,18 @@ static void sstp_pppd_check_auth(sstp_pppd_st* ctx, sstp_buff_st *tx)
     default:
 
         break;
+    }
+
+    /* Delete the file at our earliest convenience */
+    if (ctx->del_file)
+    {
+        if (0 > unlink(ctx->tmpfile))
+        {
+            log_warn("Could not remove temporary file, %m (%d)", 
+                    errno);
+        }
+        
+        ctx->del_file = 0;
     }
 }
 
@@ -462,6 +480,9 @@ status_t sstp_pppd_start(sstp_pppd_st *ctx, sstp_option_st *opts,
             /* Append the file argument to pppd */
             args[i++] = "file";
             args[i++] = ctx->tmpfile;
+
+            /* Remember to delete the file */
+            ctx->del_file = 1;
         }
 
         /* In case we are using plugin */
@@ -491,13 +512,15 @@ status_t sstp_pppd_start(sstp_pppd_st *ctx, sstp_option_st *opts,
 
         /* Get the socket to listen on */
         ctx->sock    = sstp_task_stdout(ctx->task);
-        ctx->t_start = time(NULL);
     }
     else
     {
         /* pppd is our parent, we communciate over a pty terminal */
         ctx->sock = STDIN_FILENO;
     }
+
+    /* Need to record approximate time */
+    ctx->t_start = time(NULL);
 
     /* Add the event context */
     ctx->ev_recv = event_new(ctx->ev_base, ctx->sock, EV_READ, (event_fn) 
@@ -587,6 +610,18 @@ void sstp_pppd_free(sstp_pppd_st *ctx)
         return;
     }
 
+    /* Delete the temporary file */
+    if (ctx->del_file)
+    {
+        if (0 > unlink(ctx->tmpfile))
+        {
+            log_warn("Could not remove temporary file, %m (%d)", 
+                    errno);
+        }
+        
+        ctx->del_file = 0;
+    }
+
     /* Cleanup the task */
     if (ctx->task)
     {
@@ -621,12 +656,6 @@ void sstp_pppd_free(sstp_pppd_st *ctx)
     {
         event_del(ctx->ev_recv);
         event_free(ctx->ev_recv);
-    }
-
-    /* Remove the temporary file */
-    if (0 > unlink(ctx->tmpfile))
-    {
-        log_warn("Could not remove temporary file, %m (%d)", errno);
     }
 
     /* Free pppd context */

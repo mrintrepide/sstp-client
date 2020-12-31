@@ -1,9 +1,9 @@
 Package: sstp-client
-Version: 1.0.2
+Version: 1.0.3
 Architecture: amd64
 Maintainer: Eivind Naess <eivnaes@yahoo.com>
 Installed-Size: 220
-Depends: libc6 (>= 2.7), libevent-2.0-5 (>= 2.0.10-stable), libssl1.0.0 (>= 1.0.0), ppp-dev, libevent-dev, libssl-dev
+Depends: libc6 (>= 2.7), libevent-2.0-5 (>= 2.0.10-stable), libssl1.0.0 (>= 1.0.0), ppp (>= 2.4.5)
 Recommends: network-manager-sstp | network-manager-sstp-gnome
 Section: net
 Priority: optional
