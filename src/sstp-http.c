@@ -88,34 +88,6 @@ static void sstp_recv_proxy_complete(sstp_stream_st *client,
     sstp_buff_st *buf, void *ctx, status_t status);
 
 
-#if 0
-/*!
- * @brief Sent by the server in response to a client hello message
- */
-static void sstp_http_send_response(void)
-{
-    return;
-}
-
-
-/*!
- * @brief This receives the response to the send hello
- */
-static void sstp_http_recv_response(void)
-{
-    return;
-}
-
-
-/*! 
- * @brief Server's receive hello from the client
- */
-static void sstp_http_recv_hello(sstp_http_st *http)
-{
-    return;
-}
-#endif
-
 status_t sstp_http_create(sstp_http_st **http, const char *server, 
     sstp_http_done_fn done_cb, void *uarg, int mode)
 {

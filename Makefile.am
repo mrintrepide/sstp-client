@@ -19,8 +19,6 @@ man8_MANS = sstpc.8
 EXTRA_DIST = 		\
 	$(man8_MANS) 	\
 	$(doc_DATA)	\
-	support 	\
-	debian		\
 	sstp-client.spec\
 	DEVELOPERS 	\
 	USING

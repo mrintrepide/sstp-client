@@ -83,7 +83,6 @@ void sstp_usage_die(const char *prog, int code,
     printf("  --cert-warn              Warn on certificate errors\n");
     printf("  --ipparam <param>        The unique connection id used w/pppd\n");
     printf("  --help                   Display this menu\n");
-    printf("  --debug                  Enable debug mode\n");
     printf("  --nolaunchpppd           Don't start pppd, for use with pty option\n");
     printf("  --password               Password\n");
     printf("  --priv-user              The user to run as\n");
@@ -160,11 +159,11 @@ static void sstp_parse_option(sstp_option_st *ctx, int argc, char **argv, int in
         break;
 
     case 3:
-        ctx->enable |= SSTP_OPT_DEBUG;
+        sstp_usage_die(argv[0], 0, "Showing help text");
         break;
 
     case 4:
-        sstp_usage_die(argv[0], 0, "Showing help text");
+        ctx->host = strdup(optarg);
         break;
 
     case 5:
@@ -215,6 +214,10 @@ static void sstp_parse_option(sstp_option_st *ctx, int argc, char **argv, int in
         ctx->enable |= SSTP_OPT_TLSEXT;
         break;
 
+    case 16:
+	sstp_print_version(argv[0]);
+	break;
+
     default:
         sstp_usage_die(argv[0], -1, "Unrecognized command line option");
         break;
@@ -226,39 +229,42 @@ static void sstp_parse_option(sstp_option_st *ctx, int argc, char **argv, int in
 
 void sstp_option_free(sstp_option_st *ctx)
 {
-    if (ctx->ca_cert)
+    if (ctx->ca_cert) {
         free(ctx->ca_cert);
-
-    if (ctx->ca_path)
+    }
+    if (ctx->ca_path) {
         free(ctx->ca_path);
-
-    if (ctx->server)
+    }
+    if (ctx->server) {
         free(ctx->server);
-
-    if (ctx->ipparam)
+    }
+    if (ctx->host) {
+        free(ctx->host);
+    }
+    if (ctx->ipparam) {
         free(ctx->ipparam);
-
-    if (ctx->password)
+    }
+    if (ctx->password) {
         free(ctx->password);
-
-    if (ctx->priv_user)
+    }
+    if (ctx->priv_user) {
         free(ctx->priv_user);
-
-    if (ctx->priv_group)
+    }
+    if (ctx->priv_group) {
         free(ctx->priv_group);
-
-    if (ctx->priv_dir)
+    }
+    if (ctx->priv_dir) {
         free(ctx->priv_dir);
-
-    if (ctx->proxy)
+    }
+    if (ctx->proxy) {
         free(ctx->proxy);
-
-    if (ctx->uuid)
+    }
+    if (ctx->uuid) {
         free(ctx->uuid);
-
-    if (ctx->user)
+    }
+    if (ctx->user) {
         free(ctx->user);
-
+    }
     /* Reset the entire structure */
     memset(ctx, 0, sizeof(sstp_option_st));
 }
@@ -272,8 +278,8 @@ int sstp_parse_argv(sstp_option_st *ctx, int argc, char **argv)
         { "ca-cert",        required_argument, NULL,  0  }, /* 0 */
         { "ca-path",        required_argument, NULL,  0  },
         { "cert-warn",      no_argument,       NULL,  0  },
-        { "debug",          no_argument,       NULL,  0  },
-        { "help",           no_argument,       NULL,  0  },
+        { "help",           no_argument,       NULL, 'h' },
+        { "host",           required_argument, NULL,  0  },
         { "ipparam",        required_argument, NULL,  0  }, /* 5 */
         { "nolaunchpppd",   no_argument,       NULL,  0  },
         { "password",       required_argument, NULL,  0  },
@@ -284,7 +290,7 @@ int sstp_parse_argv(sstp_option_st *ctx, int argc, char **argv)
         { "user",           required_argument, NULL,  0  },
         { "uuid",           required_argument, NULL,  0  },
         { "save-server-route", no_argument,    NULL,  0  },
-        { "tls-ext",        no_argument,       NULL,  0  },
+        { "tls-ext",        no_argument,       NULL,  0  }, /* 15 */
         { "version",        no_argument,       NULL, 'v' },
         { 0, 0, 0, 0 }
     };
@@ -308,6 +314,12 @@ int sstp_parse_argv(sstp_option_st *ctx, int argc, char **argv)
             sstp_parse_option(ctx, argc, argv, option_index);
             break;
 
+        /* Displaying help text */
+        case 'h':
+            sstp_usage_die(argv[0], 0, "Showing help text");
+            break;
+
+        /* Displaying version */
         case 'v':
             sstp_print_version(argv[0]);
             break;

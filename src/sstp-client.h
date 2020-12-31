@@ -33,7 +33,7 @@
 typedef struct sstp_peer
 {
     /*! The peer name */
-    char name[128];
+    char name[255];
 
     /*! The address information of our peer */
     struct sockaddr addr;

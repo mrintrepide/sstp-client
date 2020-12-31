@@ -10,7 +10,7 @@
 sstpc \- SSTP Client
 .SH SYNOPSIS
 .B sstpc
-.I "<sstp-server-IP> <sstp-options> [ppp-options] ..."
+.I "[<sstp-options>] <hostname> [ppp-options] ..."
 .SH "DESCRIPTION"
 .LP
 .B sstpc
@@ -35,8 +35,8 @@ Specify the directory of certificates that contains the CA certificate. If nothi
 .B \-\-cert-warn
 Ignore certificate warnings like common name instead of terminating the connection.
 .TP
-.B \-\-debug
-Run in foreground (for debugging with gdb)
+.B \-\-host
+When connecting to an IP address, the host parameter will provide the hostname for http, proxy and tls-ext
 .TP
 .B \-\-ipparam
 This will help specify the callback socket that 
@@ -112,7 +112,9 @@ Include file and line number with the log messages
 .TP
 .B \-\-log-filter
 Filter the logs by a particular set of files, e.g: sstp-packet,sstp-state
-
+.TP
+.B \-\-log-ident
+Specify the identity that will be used when writing logs to e.g. syslog
 .SH "EXAMPLES"
 Connection to a Microsoft Windows RAS Service using SSTP protocol
 .TP

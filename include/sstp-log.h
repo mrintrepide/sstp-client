@@ -50,8 +50,9 @@ typedef enum
      SSTP_LOG_WARN  = 1,
      SSTP_LOG_INFO  = 2,
      SSTP_LOG_DEBUG = 3,
-     SSTP_LOG_TRACE = 4,
-     SSTP_LOG_DUMP  = 5,
+     SSTP_LOG_DBGCTRL = 4,
+     SSTP_LOG_TRACE = 5,
+     SSTP_LOG_DUMP  = 6,
 
 } sstp_level_t;
 

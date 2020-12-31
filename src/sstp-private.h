@@ -64,12 +64,12 @@ typedef struct timeval timeval_st;
 #include <sstp-common.h>
 #include <sstp-log.h>
 
+#include "sstp-option.h"
 #include "sstp-buff.h"
 #include "sstp-stream.h"
 #include "sstp-chap.h"
 #include "sstp-state.h"
 #include "sstp-util.h"
-#include "sstp-option.h"
 #include "sstp-event.h"
 #include "sstp-pppd.h"
 #include "sstp-cmac.h"

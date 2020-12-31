@@ -1032,6 +1032,12 @@ void sstp_pkt_dump(sstp_buff_st *buf, sstp_direction_t dir, const char *file, in
     pkt    = (sstp_pkt_st*) sstp_buff_data(buf, index);
     index += (sizeof(sstp_pkt_st));
 
+    /* Debugging control messages only? */
+    if (SSTP_LOG_DBGCTRL == sstp_log_level() &&
+        !(SSTP_MSG_FLAG_CTRL & pkt->flags)) {
+        return;
+    }
+
     /* Packet Type / Length */
     sstp_log_msg(SSTP_LOG_TRACE, file, line, "%s SSTP %s PKT(%d) ", 
 	(dir == SSTP_DIR_RECV) ? "RECV" : "SEND",
@@ -1066,7 +1072,7 @@ void sstp_pkt_dump(sstp_buff_st *buf, sstp_direction_t dir, const char *file, in
             index = ntohs(attr->length);
         }
     }
-    else 
+    else if (SSTP_LOG_TRACE <= sstp_log_level())
     {
         sstp_dump_ppp(sstp_pkt_data(buf), sstp_pkt_data_len(buf), file, line);
     }

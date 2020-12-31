@@ -50,13 +50,6 @@
 
 #include "sstp-private.h"
 
-// HOST_NAME_MAX is recommended by POSIX, but not required.
-// FreeBSD and OSX (as of 10.9) are known to not define it.
-// 255 is generally the safe value
-#ifndef HOST_NAME_MAX
-#define HOST_NAME_MAX 255
-#endif
-
 /*!
  * @brief A asynchronous send or recv channel object
  */
@@ -124,8 +117,8 @@ struct sstp_stream
     /*< The list of free operations */
     sstp_operation_st *cache;
 
-    /*< Host name */
-    char name[HOST_NAME_MAX+1];
+    /*< The option structure */
+    sstp_option_st *opts;
 };
 
 
@@ -725,6 +718,8 @@ status_t sstp_stream_send(sstp_stream_st *stream, sstp_buff_st *buf,
 
 static status_t sstp_stream_setup(sstp_stream_st *stream)
 {
+    sstp_option_st *opts = stream->opts;
+
     /* Associate the streams */
     stream->ssl = SSL_new(stream->ssl_ctx);
     if (stream->ssl == NULL)
@@ -739,11 +734,12 @@ static status_t sstp_stream_setup(sstp_stream_st *stream)
         log_err("Could not set SSL socket");
         goto done;
     }   
-
-    if (strnlen(stream->name, HOST_NAME_MAX) > 0 && \
-            !SSL_set_tlsext_host_name(stream->ssl, stream->name))
+    
+    /* Set the SNI field within the TLS extensions */
+    if (opts->enable & SSTP_OPT_TLSEXT &&
+        !SSL_set_tlsext_host_name(stream->ssl, opts->host ?: opts->server)) 
     {
-        log_err("Unable to set TLS hostname extension.");
+        log_err("Unable to set TLS hostname extension");
         goto done;
     }
 
@@ -781,7 +777,6 @@ static void sstp_connect_complete(int sock, short event,
         goto done;
     }
 
-    /* Configure the SSL context */
     ret = sstp_stream_setup(stream);
     if (SSTP_OKAY != ret)
     {
@@ -946,7 +941,7 @@ done:
 
 
 status_t sstp_stream_create(sstp_stream_st **stream, event_base_st *base, 
-        SSL_CTX *ssl, const char* name)
+        SSL_CTX *ssl, sstp_option_st *opts)
 {
     /* Create a new stream */
     sstp_stream_st *stream_= calloc(1, sizeof(sstp_stream_st));
@@ -960,12 +955,8 @@ status_t sstp_stream_create(sstp_stream_st **stream, event_base_st *base,
     stream_->ev_recv = event_new(base, -1, 0, NULL, NULL);
     stream_->ev_send = event_new(base, -1, 0, NULL, NULL);
     stream_->ssl_ctx = ssl;
+    stream_->opts    = opts;
     *stream = stream_;
-
-    if (name)
-    {
-        strncpy(stream_->name, name, sizeof(stream_->name));
-    }
 
     /* Success */
     return SSTP_OKAY;

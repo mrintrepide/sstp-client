@@ -1,6 +1,6 @@
 AC_PREREQ([2.65])
 AC_INIT([sstp-client], 
-        [1.0.11],
+        [1.0.12],
         [http://sourceforge.net/projects/sstp-client])
 
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
@@ -20,7 +20,7 @@ LIBEVENT2_MINIMUM=2.0.10
 # Check if user asked us to compile with 1.4 support
 AC_ARG_WITH(libevent,
     AC_HELP_STRING([--with-libevent], [Specify the libevent version to compile with]),
-    [with_libevent="$withval"], [with_libevent="1"])
+    [with_libevent="$withval"], [with_libevent="2"])
 
 AS_CASE([$with_libevent],
     ["1"],[AX_CHECK_LIBRARY([LIBEVENT], [event.h], [event], 

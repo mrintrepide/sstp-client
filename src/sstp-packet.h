@@ -104,7 +104,7 @@ typedef enum
  * @brief Help trace the packet
  */
 #define sstp_pkt_trace(buf, dir)     \
-    if (SSTP_LOG_TRACE <= sstp_log_level()) \
+    if (SSTP_LOG_DBGCTRL <= sstp_log_level()) \
     {                                       \
         sstp_pkt_dump(buf, dir, __FILE__, __LINE__);    \
     }

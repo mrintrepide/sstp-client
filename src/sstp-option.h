@@ -29,7 +29,6 @@
 /*< Don't launch the pppd daemon */
 #define SSTP_OPT_NOLAUNCH       0x0001
 #define SSTP_OPT_NODAEMON       0x0002
-#define SSTP_OPT_DEBUG          0x0004
 #define SSTP_OPT_NOPLUGIN       0x0008
 #define SSTP_OPT_CERTWARN       0x0010
 #define SSTP_OPT_SAVEROUTE      0x0020
@@ -52,6 +51,9 @@ typedef struct
 
     /*! The original server string */
     char *server;
+
+    /*! The hostname to use if server is an ip address */
+    char *host;
 
     /*! Unique connection parameter */
     char *ipparam;
