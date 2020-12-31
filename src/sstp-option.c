@@ -289,7 +289,7 @@ int sstp_parse_argv(sstp_option_st *ctx, int argc, char **argv)
     while (1)
     {
         /* Use getopt to parse the command line */
-        char c = getopt_long(argc, argv, "v", option_long, &option_index);
+        int c = getopt_long(argc, argv, "v", option_long, &option_index);
         if (c == -1)
         {
             break;

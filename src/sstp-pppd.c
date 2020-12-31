@@ -203,6 +203,16 @@ static void sstp_pppd_ipup(sstp_pppd_st* ctx, sstp_buff_st *tx)
 {
     uint8_t *buf = sstp_pkt_data(tx);
     uint16_t proto;
+    
+    if (buf[0] == 0xFF && buf[1] == 0x03)
+    {
+        buf += 2;
+    }
+
+    if (buf[0] == 0xFF && buf[1] == 0x03)
+    {
+        buf += 2;
+    }
 
     proto = (ntohs(*(uint16_t *) buf));
     if (proto == SSTP_PPP_IPCP)
@@ -225,6 +235,16 @@ static void sstp_pppd_check_auth(sstp_pppd_st* ctx, sstp_buff_st *tx)
 {
     uint8_t *buf = sstp_pkt_data(tx);
     int ret = 0;
+    
+    if (buf[0] == 0xFF && buf[1] == 0x03)
+    {
+        buf += 2;
+    }
+
+    if (buf[0] == 0xFF && buf[1] == 0x03)
+    {
+        buf += 2;
+    }
 
     /* Check if we have received the MS-CHAPv2(0xC223) credentials */
     switch (ntohs(*(uint16_t*)buf))
@@ -257,6 +277,9 @@ static void sstp_pppd_check_auth(sstp_pppd_st* ctx, sstp_buff_st *tx)
     case SSTP_PPP_AUTH_PAP:
         
         sstp_pppd_deltmp(ctx);
+
+        /* Need to flag that auth is done */
+        ctx->auth_done = 1;
 
         /* No need to set the MPPE keys, they are all zero */
         //ret = sstp_state_accept(ctx->state);
@@ -336,12 +359,12 @@ static status_t ppp_process_data(sstp_pppd_st *ctx)
         }
 
         /* If plugin is not enabled, then we need to send ip-up */
-        if (ctx->auth_check && !ctx->ip_up)
+        if (ctx->auth_check && ctx->auth_done && !ctx->ip_up)
         {
             sstp_pppd_ipup(ctx, tx);
         }
 
-        sstp_pkt_trace(tx);
+        sstp_pkt_trace(tx, SSTP_DIR_SEND);
 
         /* Send a PPP frame */
         ret = sstp_stream_send(ctx->stream, tx, (sstp_complete_fn) 

@@ -92,25 +92,30 @@ void sstp_cmac_result(cmac_ctx_st *ctx, uint8_t *msg, int mlen, uint8_t *result,
     HMAC_CTX hmac;
     uint8_t  key[EVP_MAX_MD_SIZE];
     unsigned int klen = sizeof(key);
-    uint8_t  iter = 0x01;
-    uint16_t len  = SHA_DIGEST_LENGTH;
+    uint8_t iter = 0x01;
+    uint8_t len0 = SHA_DIGEST_LENGTH;
+    uint8_t len1 = 0;
     const EVP_MD *(*evp)() = EVP_sha1;
 
     /* The 256-bit keys are a bit different */
     if (SSTP_CMAC_SHA256 & ctx->flag)
     {
-        len = SHA256_DIGEST_LENGTH;
-        evp = EVP_sha256;
+        len0 = SHA256_DIGEST_LENGTH;
+        evp  = EVP_sha256;
     }
     
     /*
      * Generate the Key first, using the T1 = HMAC(HLAK, S | LEN | 0x01),
      *   CMACK = T1a
+     *
+     * LEN must be encoded in little endian format. See specification under
+     * CMAC generation (3.1.5.2.2).
      */
     HMAC_CTX_init(&hmac);
     HMAC_Init   (&hmac, ctx->key, sizeof(ctx->key), evp());
     HMAC_Update (&hmac, (uint8_t*) ctx->seed,  ctx->slen);
-    HMAC_Update (&hmac, (uint8_t*) &len,  (int) sizeof(len));
+    HMAC_Update (&hmac, (uint8_t*) &len0, (int) sizeof(len0));
+    HMAC_Update (&hmac, (uint8_t*) &len1, (int) sizeof(len1));
     HMAC_Update (&hmac, (uint8_t*) &iter, (int) sizeof(iter));
     HMAC_Final  (&hmac, key, &klen);
     HMAC_CTX_cleanup(&hmac);

@@ -24,6 +24,23 @@
 #ifndef __SSTP_UTIL_H__
 #define __SSTP_UTIL_H__
 
+#define SIZEOF_ARRAY(x) \
+    (sizeof(x)/sizeof(x[0]))
+
+#define MIN(x,y) \
+    ((x) > (y) ? (y) : (x))
+
+
+/*!
+ * @brief Name Value pairs
+ */
+typedef struct 
+{
+    int type;
+    const char *name;
+
+} sstp_nval_st;
+
 
 /*!
  * @brief structure to hold URL components
@@ -112,6 +129,12 @@ int sstp_get_uid(const char *name);
  * @brief Convert a group name into the actua gid value
  */
 int sstp_get_gid(const char *name);
+
+
+/*!
+ * @brief Convert binary into hex characters that can be used for debugging
+ */
+int sstp_bin2hex(const char *fmt, char *outbuf, int outlen, unsigned char *inbuf, int inlen);
 
 
 /*!

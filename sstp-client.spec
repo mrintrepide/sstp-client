@@ -1,8 +1,8 @@
-%define ppp_version 2.4.5
+%global ppp_version %(rpm -q ppp --queryformat '%{VERSION}')
 %define event_version 2.0.10
 
 Name:		sstp-client
-Version:	1.0.9
+Version:	1.0.10
 Release:	1%{?dist}
 Summary:	Secure Socket Tunneling Protocol (SSTP) Client
 Group:		Applications/Internet
@@ -89,6 +89,9 @@ rm -rf /var/run/sstpc
 /usr/include/sstp-client/sstp-api.h
 
 %changelog
+* Fri May 29 2015 Eivind Naess <eivnaes@yahoo.com> - 1.0.10-1
+  * Fixed a few bugs related to MicroTik routers and HTTP Proxy
+
 * Sat Jan 13 2013 Eivind Naess <eivnaes@yahoo.com> - 1.0.9-1
   * Fixed a critical bug that caused received packets to become corrupt, inability to access
     internal web-sites and caused random segfaults. Thanks to Damijan A. for reporting and 

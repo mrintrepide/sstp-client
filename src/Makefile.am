@@ -30,6 +30,7 @@ sstpc_SOURCES =         \
     sstp-option.c       \
     sstp-stream.c       \
     sstp-packet.c       \
+    sstp-dump.c         \
     sstp-pppd.c         \
     sstp-util.c         \
     sstp-cmac.c         \
@@ -47,11 +48,13 @@ noinst_HEADERS  =       \
     sstp-client.h       \
     sstp-chap.h         \
     sstp-cmac.h         \
+    sstp-dump.h         \
     sstp-event.h        \
     sstp-fcs.h          \
     sstp-http.h         \
     sstp-option.h       \
     sstp-packet.h       \
+    sstp-ppp.h          \
     sstp-pppd.h         \
     sstp-private.h      \
     sstp-route.h        \

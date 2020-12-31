@@ -1,6 +1,6 @@
 AC_PREREQ([2.65])
 AC_INIT([sstp-client], 
-        [1.0.9],
+        [1.0.10],
         [http://sourceforge.net/projects/sstp-client])
 
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
@@ -92,7 +92,7 @@ AC_ARG_WITH([pppd-plugin-dir],
 if test -n "$with_pppd_plugin_dir" ; then
     PPPD_PLUGIN_DIR="$with_pppd_plugin_dir"
 else
-    PPPD_PLUGIN_DIR="${libdir}/pppd/2.4.5"
+    PPPD_PLUGIN_DIR="${libdir}/pppd/2.4.6"
 fi
 AC_SUBST(PPPD_PLUGIN_DIR)
 

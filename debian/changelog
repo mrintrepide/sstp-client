@@ -1,3 +1,17 @@
+sstp-client (1.0.10-0ubuntu2) vivid; urgency=low
+
+  * Fixed the HTTP Proxy connection failing
+  * Fixed the PAP authentication
+
+ -- Eivind Naess <eivnaes@yahoo.com>  Sat, 23 May 2015 08:00:00 -0800
+
+sstp-client (1.0.10-0ubuntu1) vivid; urgency=low
+
+  * Fixed an issue with staying connected to MikroTik routers.
+  * Ease of troubleshooting with built in PPP packet dump.
+
+ -- Eivind Naess <eivnaes@yahoo.com>  Sat, 16 May 2015 08:00:00 -0800
+
 sstp-client (1.0.9) quantal; urgency=high
 
   * Fixed a critical bug that caused received packets to become corrupt, inability to access

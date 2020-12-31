@@ -324,16 +324,16 @@ status_t sstp_http_handshake(sstp_http_st *http, sstp_stream_st *stream)
     {
     case SSTP_MODE_CLIENT:
 
+        /* Setup a receiver for HTTP messages */
+        sstp_stream_setrecv(stream, sstp_stream_recv, http->buf,
+                (sstp_complete_fn) sstp_recv_hello_complete, http, 60);
+
         /* Send the sstp hello to the server */
         ret = sstp_http_send_hello(http, stream);
         if (SSTP_OKAY != ret)
         {
             break;
         }
-
-        /* Setup a receiver for HTTP messages */
-        sstp_stream_setrecv(stream, sstp_stream_recv, http->buf,
-                (sstp_complete_fn) sstp_recv_hello_complete, http, 60);
         break;
 
     case SSTP_MODE_SERVER:

@@ -181,6 +181,11 @@ static void sstp_client_state_cb(sstp_client_st *client, sstp_state_t event)
 
     case SSTP_CALL_ABORT:
     default:
+
+	if (client->pppd) 
+        {
+	    sstp_pppd_stop(client->pppd);
+        }
         sstp_die("Connection was aborted, %s", -1, 
                 sstp_state_reason(client->state));
         break;
@@ -474,7 +479,8 @@ static status_t sstp_init_ssl(sstp_client_st *client, sstp_option_st *opt)
         }
     }
 
-    SSL_CTX_set_verify_depth(client->ssl_ctx, 1);
+    /* OBS: In case of longer certificate chains than 1 */
+    SSL_CTX_set_verify_depth(client->ssl_ctx, 9);
 
     /*! Success */
     retval = SSTP_OKAY;

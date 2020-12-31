@@ -406,6 +406,28 @@ done:
 }
 
 
+int sstp_bin2hex(const char *fmt, char *outbuf, int outlen, unsigned char *inbuf, int inlen)
+{
+    int count   = 0;
+    int offset  = 0;
+    int len     = 0;
+
+    for (count = 0; count < inlen; count++)
+    {
+        len = sprintf(&outbuf[offset], fmt, (inbuf[count]) & 0xFF);
+        if (len < 0 || len >= (outlen - offset))
+        {
+            return -1;
+        }
+
+        offset += len;
+    }
+
+    /* Return the number of bytes written */
+    return offset;
+}
+
+
 int sstp_create_dir(const char *path, const char *user, const char *group, mode_t mode)
 {
     int ret = -1;

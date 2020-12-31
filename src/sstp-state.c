@@ -181,7 +181,7 @@ static status_t sstp_state_echo_request(sstp_state_st *ctx)
     }
 
     /* Dump the packet */
-    sstp_pkt_trace(ctx->tx_buf);
+    sstp_pkt_trace(ctx->tx_buf, SSTP_DIR_SEND);
 
     /* Send the Echo Response back to server */
     status = sstp_stream_send(ctx->stream, ctx->tx_buf, (sstp_complete_fn)
@@ -213,7 +213,7 @@ static status_t sstp_state_echo_reply(sstp_state_st *ctx)
     }
 
     /* Dump the packet */
-    sstp_pkt_trace(ctx->tx_buf);
+    sstp_pkt_trace(ctx->tx_buf, SSTP_DIR_SEND);
 
     /* Send the Echo Response back to server */
     status = sstp_stream_send(ctx->stream, ctx->tx_buf, (sstp_complete_fn)
@@ -242,7 +242,7 @@ static status_t sstp_state_disconnect(sstp_state_st *ctx)
     }
 
     /* Dump the packet */
-    sstp_pkt_trace(ctx->tx_buf);
+    sstp_pkt_trace(ctx->tx_buf, SSTP_DIR_SEND);
 
     /* Send the Echo Response back to server */
     status = sstp_stream_send(ctx->stream, ctx->tx_buf, (sstp_complete_fn)
@@ -271,7 +271,7 @@ static status_t sstp_state_disconnect_ack(sstp_state_st *ctx)
     }
 
     /* Dump the packet */
-    sstp_pkt_trace(ctx->tx_buf);
+    sstp_pkt_trace(ctx->tx_buf, SSTP_DIR_SEND);
 
     /* Send the Echo Response back to server */
     status = sstp_stream_send(ctx->stream, ctx->tx_buf, (sstp_complete_fn)
@@ -432,7 +432,7 @@ static void sstp_state_handle_packet(sstp_state_st *ctx, sstp_buff_st *buf)
     sstp_msg_t type;
 
     /* Dump Packet */
-    sstp_pkt_trace(buf);
+    sstp_pkt_trace(buf, SSTP_DIR_RECV);
 
     /* Handle the packet type */
     switch (sstp_pkt_type(buf, &type))
@@ -517,7 +517,7 @@ static status_t sstp_state_send_request(sstp_state_st *ctx)
     }
 
     /* Dump the packet */
-    sstp_pkt_trace(ctx->tx_buf);
+    sstp_pkt_trace(ctx->tx_buf, SSTP_DIR_SEND);
 
     /* Send the Call Connect request to the server */
     status = sstp_stream_send(ctx->stream, ctx->tx_buf, (sstp_complete_fn)
@@ -604,7 +604,7 @@ static status_t sstp_state_send_connect(sstp_state_st *ctx)
             ctx->tx_buf->len, (uint8_t*) &ctx->tx_buf->data[80], 32);
 
     /* Dump the packet */
-    sstp_pkt_trace(ctx->tx_buf);
+    sstp_pkt_trace(ctx->tx_buf, SSTP_DIR_SEND);
 
     /* Success */
     status = sstp_stream_send(ctx->stream, ctx->tx_buf, (sstp_complete_fn)

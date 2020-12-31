@@ -88,13 +88,25 @@ typedef enum
 
 #define SSTP_ATTR_MAX   (_SSTP_ATTR_MAX - 1)
 
+
+/*!
+ * @brief Did we receive the packet or send it?
+ */
+typedef enum
+{
+    SSTP_DIR_RECV,
+    SSTP_DIR_SEND
+
+} sstp_direction_t;
+
+
 /*! 
  * @brief Help trace the packet
  */
-#define sstp_pkt_trace(buf)     \
+#define sstp_pkt_trace(buf, dir)     \
     if (SSTP_LOG_TRACE <= sstp_log_level()) \
     {                                       \
-        sstp_pkt_dump(buf, __FILE__, __LINE__);    \
+        sstp_pkt_dump(buf, dir, __FILE__, __LINE__);    \
     }
 
 
@@ -126,14 +138,69 @@ enum
 };
 
 
-/*< Forward declare the pkt structure */
-struct sstp_pkt;
-typedef struct sstp_pkt sstp_pkt_st;
+/*< Support of SSTP protocol v1.0 */
+#define SSTP_PROTO_VER        0x10
 
 
-/*< Forward declare the attribute */
-struct sstp_attr;
-typedef struct sstp_attr sstp_attr_st;
+/*< The flag signifying a control message */
+#define SSTP_MSG_FLAG_CTRL    0x01
+
+
+/*!
+ * @brief The SSTP packet header
+ */
+typedef struct sstp_pkt
+{
+    /*< The sstp header version */
+    uint8_t version;
+
+    /*< 7 reserved bits, 1 ctrl bit field */
+    uint8_t flags;
+
+    /*< The length of the entire packet */
+    uint16_t length;
+
+    /*< The data packet would contain data from this point on */
+    char data[0];
+
+} sstp_pkt_st;
+
+
+/*!
+ * @brief The attribute of a control message
+ */
+typedef struct sstp_attr
+{
+    /*< Reserved field */
+    uint8_t reserved;
+
+    /*< The attribute id */
+    uint8_t type;
+
+    /*< 4 reserved bits, 12 LSB is the length */
+    uint16_t length;
+
+    /*< The data pointer */
+    char data[0];
+
+} sstp_attr_st;
+
+
+/*!
+ * @brief The control packet
+ */
+typedef struct
+{
+    /*< The ctrl type */
+    uint16_t type;
+
+    /*< The number of attributes */
+    uint16_t nattr;
+
+    /*< The data following the ctrl header */
+    char data[0];
+
+} sstp_ctrl_st;
 
 
 /*! 
@@ -204,6 +271,6 @@ int sstp_attr_len(sstp_attr_st *attr);
 const char *sstp_attr_status_str(int status);
 
 
-void sstp_pkt_dump(sstp_buff_st *buf, const char *file, int line);
+void sstp_pkt_dump(sstp_buff_st *buf, sstp_direction_t dir, const char *file, int line);
 
 #endif /* #ifdef __SSTP_PACKET_H__ */

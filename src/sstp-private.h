@@ -78,5 +78,6 @@ typedef struct timeval timeval_st;
 #include "sstp-task.h"
 #include "sstp-fcs.h"
 #include "sstp-http.h"
+#include "sstp-dump.h"
 
 #endif /* #ifndef __SSTP_PRIVATE_H__ */
