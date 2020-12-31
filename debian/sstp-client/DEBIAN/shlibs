@@ -1,0 +1,2 @@
+libsstp_api 0 sstp-client
+sstp-pppd plugin sstp-client

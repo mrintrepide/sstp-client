@@ -1,0 +1,12 @@
+Package: sstp-client
+Version: 1.0.6
+Architecture: amd64
+Maintainer: Eivind Naess <eivnaes@yahoo.com>
+Installed-Size: 232
+Depends: libc6 (>= 2.7), libevent-2.0-5 (>= 2.0.10-stable), libssl1.0.0 (>= 1.0.0), ppp (>= 2.4.5)
+Recommends: network-manager-sstp | network-manager-sstp-gnome
+Section: net
+Priority: optional
+Homepage: http://sstp-client.sourceforge.net
+Description: Secure Socket Tunneling Protocol (SSTP) Client
+ Client for the properitary Microsoft Secure Socket Tunneling Protocol, SSTP. Allows connection for a SSTP based VPN as used by employers.
