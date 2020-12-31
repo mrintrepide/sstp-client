@@ -478,7 +478,7 @@ status_t sstp_http_proxy(sstp_http_st *http, sstp_stream_st *stream)
     /* Username and password */
     if (http->user && http->pass)
     {
-        char auth[255];
+        char auth[512];
 
         /* Get the basic auth */
         sstp_proxy_basicauth(http->user, http->pass, auth, sizeof(auth));

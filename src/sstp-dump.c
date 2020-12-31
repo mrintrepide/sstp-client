@@ -66,6 +66,11 @@ static const ppp_handler_st *sstp_ppp_handler(int id);
 #define CHAP_MSG_NAME(x)    \
     [ CHAP_##x ] = { CHAP_##x, #x }
 
+#define EAP_MSG_NAME(x)     \
+    [ EAP_##x ] = { EAP_##x, #x }
+
+#define EAP_TYP_NAME(x)     \
+    [ EAPT_##x ] = { EAPT_##x, #x }
 
 /*!
  * @brief Get the name of the particular code 
@@ -194,6 +199,69 @@ static const char *sstp_ipcp_getname(ppp_opt_st *opt)
         if (ipcp_opts[cnt].type == opt->type)
         {
             return ipcp_opts[cnt].name;
+        }
+    }
+
+    return NULL;
+}
+
+
+/**
+ * @brief Get the EAP type name
+ */
+static const char *sstp_eap_typestr(unsigned char type)
+{
+    static const sstp_nval_st typ[] = 
+    {
+        EAP_TYP_NAME(IDENTITY),
+        EAP_TYP_NAME(NOTIFICATION),
+        EAP_TYP_NAME(NAK),
+        EAP_TYP_NAME(MD5CHAP),
+        EAP_TYP_NAME(OTP),
+        EAP_TYP_NAME(TOKEN),
+        EAP_TYP_NAME(RSA),
+        EAP_TYP_NAME(DSS),
+        EAP_TYP_NAME(KEA),
+        EAP_TYP_NAME(KEA_VALIDATE),
+        EAP_TYP_NAME(TLS),
+        EAP_TYP_NAME(DEFENDER),
+        EAP_TYP_NAME(W2K),
+        EAP_TYP_NAME(ARCOT),
+        EAP_TYP_NAME(CISCOWIRELESS),
+        EAP_TYP_NAME(NOKIACARD),
+        EAP_TYP_NAME(SRP)
+    };
+    
+    for (int idx = 0; idx < SIZEOF_ARRAY(typ); idx++)
+    {
+        if (type == typ[idx].type)
+        {
+            return typ[idx].name;
+        }
+    }
+
+    return NULL;
+}
+
+
+/*! 
+ * @brief Get the EAP message
+ */
+static const char *sstp_eap_codestr(const ppp_hdr_st *hdr)
+{
+    static const sstp_nval_st eap [] =
+    {
+        EAP_MSG_NAME(REQUEST),
+        EAP_MSG_NAME(RESPONSE),
+        EAP_MSG_NAME(SUCCESS),
+        EAP_MSG_NAME(FAILURE)
+    };
+
+    for (int idx = 0; idx < SIZEOF_ARRAY(eap); idx++)
+    {
+        if (hdr->code == eap[idx].type)
+        {
+            return eap[idx].name;
         }
     }
 
@@ -368,8 +436,6 @@ static int sstp_ccp_opts(const ppp_hdr_st *pkt, char *buf, int len)
     }
 
     return off;
-    
-    return 0;
 }
 
 
@@ -809,42 +875,80 @@ static int sstp_dump_ccp(const ppp_hdr_st *pkt, char *buf, int len)
  */
 static int sstp_dump_eap(const ppp_hdr_st *pkt, char *buf, int len)
 {
-    int pos = 0;
-    int ret = 0;
+    unsigned char *ptr = sstp_ppp_data(pkt);
+    unsigned int plen = sstp_ppp_data_len(pkt) - 1;
+    int pos =  0;
+    int ret = -1;
+    char flag = 0;
+    char type = *ptr++;
 
-    if (pkt->code < FSM_CONFREQ || 
-        pkt->code > FSM_CONFREJ)
-    {
-        return -1;
-    }
-
-    ret = sstp_str_add(buf, &len, &pos, " %s ", sstp_ppp_getcode(pkt->code));
+    ret = sstp_str_add(buf, &len, &pos, "%s %s", sstp_eap_codestr(pkt), 
+            sstp_eap_typestr(type));
     if (ret < 0)
     {
-        return -1;
+        goto done;
     }
 
-    switch (pkt->code)
-    {
-        case FSM_CONFREQ:
-        case FSM_CONFACK:
-        case FSM_CONFNAK:
-        case FSM_CONFREJ:
-                
-            ret = sstp_bin2hex("0x%02X ", buf + pos, len, sstp_ppp_data(pkt), sstp_ppp_data_len(pkt));
-            if (ret > 0)
+    if (pkt->code == EAP_REQUEST || 
+        pkt->code == EAP_RESPONSE) {
+        
+        switch (type) {
+        case EAPT_TLS:
+
+            flag = *ptr++;
+            plen--;
+
+            if (flag == 0 && plen == 0) 
             {
-                pos += ret;
-                len -= ret;
+                ret = sstp_str_add(buf, &len, &pos, " ACK");
+                if (ret < 0) 
+                {
+                    goto done;
+                }
+                break;
             }
 
+            ret = sstp_str_add(buf, &len, &pos, " [%s %s %s]", 
+                    EAP_TLS_FLAG_LI & flag ? "L" : "-",
+                    EAP_TLS_FLAG_MF & flag ? "M" : "-",
+                    EAP_TLS_FLAG_START & flag ? "S" : "-");
+            if (ret < 0) 
+            {
+                goto done;
+            }
+            break;
+
+        case EAPT_IDENTITY:
+        case EAPT_NOTIFICATION:
+
+            if (plen > 0) 
+            {
+                char identity[255];
+
+                memcpy(identity, ptr, plen);
+                identity[plen] = '\0';
+
+                ret = sstp_str_add(buf, &len, &pos, " NAME: \"%s\"", identity);
+                if (ret < 0) 
+                { 
+                    goto done;
+                }
+            }
             break;
 
         default:
             break;
+        }
     }
 
-    return pos;
+done:
+
+    if (ret == 0) 
+    {
+        ret = pos;
+    }
+
+    return ret;
 }
 
 

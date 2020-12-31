@@ -101,11 +101,57 @@
 /*
  * CHAP messages
  */
-#define CHAP_CHALLENGE  1
-#define CHAP_RESPONSE   2
-#define CHAP_SUCCESS    3
-#define CHAP_FAILURE    4
+#define CHAP_CHALLENGE      1
+#define CHAP_RESPONSE       2
+#define CHAP_SUCCESS        3
+#define CHAP_FAILURE        4
 
+/*
+ * EAP messages
+ */
+#define EAP_REQUEST         1
+#define EAP_RESPONSE        2
+#define EAP_SUCCESS         3
+#define EAP_FAILURE         4
+
+/*
+ * EAP type names, 7 and 8 is unassigned, 20 is deprecated
+ */
+#define    EAPT_IDENTITY        1
+#define    EAPT_NOTIFICATION    2
+#define    EAPT_NAK             3     /* (response only) */
+#define    EAPT_MD5CHAP         4
+#define    EAPT_OTP             5     /* One-Time Password; RFC 1938 */
+#define    EAPT_TOKEN           6     /* Generic Token Card */
+#define    EAPT_RSA             9     /* RSA Public Key Authentication */
+#define    EAPT_DSS             10    /* DSS Unilateral */
+#define    EAPT_KEA             11    /* KEA */
+#define    EAPT_KEA_VALIDATE    12    /* KEA-VALIDATE    */
+#define    EAPT_TLS             13    /* EAP-TLS */
+#define    EAPT_DEFENDER        14    /* Defender Token (AXENT) */
+#define    EAPT_W2K             15    /* Windows 2000 EAP */
+#define    EAPT_ARCOT           16    /* Arcot Systems */
+#define    EAPT_CISCOWIRELESS   17    /* Cisco Wireless */
+#define    EAPT_NOKIACARD       18    /* Nokia IP smart card */
+#define    EAPT_SRP             19    /* Secure Remote Password */
+
+/* 
+ * EAP SRP-SHA1 Subtypes
+ */
+#define    EAPSRP_CHALLENGE     1    /* Request 1 - Challenge */
+#define    EAPSRP_CKEY          1    /* Response 1 - Client Key */
+#define    EAPSRP_SKEY          2    /* Request 2 - Server Key */
+#define    EAPSRP_CVALIDATOR    2    /* Response 2 - Client Validator */
+#define    EAPSRP_SVALIDATOR    3    /* Request 3 - Server Validator */
+#define    EAPSRP_ACK           3    /* Response 3 - Final ack */
+#define    EAPSRP_LWRECHALLENGE 4    /* Req/resp 4 - Lightweight rechal */
+
+/*
+ * EAP TLS flags
+ */
+#define EAP_TLS_FLAG_LI         128
+#define EAP_TLS_FLAG_MF         64
+#define EAP_TLS_FLAG_START      32
 
 /*
  * MPPE bits
